@@ -1,0 +1,58 @@
+#:kivy 1.10.0
+#
+# Description:
+#
+#
+# MIT License
+# Copyright (c) 2021 Mini Autonomous
+#
+#===================================================================================================
+# create a new Kivy class "PowerCtrls" based on BoxLayout.
+# Note: Kivy classes MUST start with a capital.
+<PowerCtrls@BoxLayout>:
+  # Python properties
+  power: kvPowerButton
+  manual: kvManualButton
+  ai: kvAiButton
+  loggins: kvLogginsButton
+  # Customize some layout attributes
+  orientation: 'horizontal'
+  size_hint_y: None
+  height: 40
+  size_hint_x: 1
+  pos_hint: {'top': 1}
+  padding: 2
+  spacing: 2
+
+  # Push buttons various controls
+  Button:
+    id: kvPowerButton
+    text: 'Power OFF'
+    size_hint_x: None
+    width: 100
+    # call the method in the python app class, i.e.,
+    # on_press: app.powerOnOff()
+
+  Button:
+    id: kvManualButton
+    color: 1, 0, 0, 1
+    background_color: 0, 1, 0, 1
+    text: 'Manual'
+    size_hint_x: 1
+    # call the method in the python app class, i.e.,
+    # on_press: app.manualOnOff()
+
+  Button:
+    id: kvAiButton
+    background_color: 1, 0, 0, 1
+    text: 'AI'
+    size_hint_x: 1
+    # call the method in the python app class, i.e.,
+    # on_press: app.manualOnOff()
+
+  Button:
+    id: kvLogginsButton
+    background_color: 0, 0, 1, 1
+    text: 'Loggins'
+    size_hint_x: 1
+

@@ -1,0 +1,85 @@
+#:kivy 1.10.0
+#
+# Description:
+#
+#
+# MIT License
+# Copyright (c) 2021 Mini Autonomous
+#
+#===================================================================================================
+# create a new Kivy class "FileDiag" based on GridLayout with 2 rows.
+# Note: Kivy classes MUST start with a capital.
+<FileDiag@GridLayout>:
+  # Python properties
+  # fileName: kvFileName
+  selectDNN: kvSelectDNN
+  lblDnnPath: kvLblDnnPath
+  selectLogFolder: kvSelectLogFolder
+  lblLogFolderPath: kvLblLogFolderPath
+  # Customize some layout attributes
+  rows: 2
+  size_hint_y: None
+  height: 66
+  size_hint_x: 1
+  # pos_hint: {'top': 1}
+  padding: 2
+  spacing: 2
+
+
+  BoxLayout:
+    orientation: 'horizontal'
+    # Push button to open a file select dialog
+    Button:
+      id: kvSelectDNN
+      text: 'Network Model ...'
+      size_hint_x: None
+      width: 150
+      # call the method in the python app class, i.e.,
+      # on_press: app.selectNetwork()
+
+    # Label use to display the full path of the selected file
+    Label:
+      # Use a canvas.before to control the background color of the text
+      canvas.before:
+        Color:
+          rgba: 1, 1, 1, 1
+        # Need to slightly adjust the position and size so that the canvas aligns nicely with the
+        # associated button on the left.
+        Rectangle:
+          pos: self.x, self.y+2
+          size: self.width, self.height-2
+      id: kvLblDnnPath
+      text: '  No file selected.'
+      color: 0, 0, 0, 1
+      halign: 'left'
+      valign: 'middle'
+      markup: True
+
+  BoxLayout:
+    orientation: 'horizontal'
+    # Push button to open a file select dialog
+    Button:
+      id: kvSelectLogFolder
+      text: 'Log Folder ...'
+      size_hint_x: None
+      width: 150
+      # call the method in the python app class, i.e.,
+      # on_press: app.selectLogFolderPath()
+
+    # Label use to display the full path of the selected file
+    Label:
+      # Use a canvas.before to control the background color of the text
+      canvas.before:
+        Color:
+          rgba: 1, 1, 1, 1
+        # Need to slightly adjust the position and size so that the canvas aligns nicely with the
+        # associated button on the left.
+        Rectangle:
+          pos: self.x, self.y+2
+          size: self.width, self.height-2
+      id: kvLblLogFolderPath
+      text: '  No folder selected.'
+      color: 0, 0, 0, 1
+      halign: 'left'
+      valign: 'middle'
+      markup: True

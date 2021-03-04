@@ -1,0 +1,27 @@
+#:kivy 1.10.0
+#
+# Description:
+#
+#
+# MIT License
+# Copyright (c) 2021 Mini Autonomous
+#
+#===================================================================================================
+<Camera@FloatLayout>:
+  imgMsg: kvImgMessage
+  size_hint_x: None
+  width: root.parent.width
+  canvas:
+    Rectangle:
+      texture: root.parent.imgTexture
+      pos: self.pos
+      size: self.size
+
+  Label:
+    id: kvImgMessage
+    text: ''
+    color: 0, 0, 0, 1
+    halign: 'left'
+    valign: 'middle'
+    markup: True
+    text_size: self.size

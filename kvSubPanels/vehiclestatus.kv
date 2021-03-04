@@ -1,0 +1,65 @@
+#:kivy 1.10.0
+#
+# Description:
+#
+#
+# MIT License
+# Copyright (c) 2021 Mini Autonomous
+#
+#===================================================================================================
+# create a new Kivy class "VehicleStatus" based on BoxLayout.
+# Note: Kivy classes MUST start with a capital.
+<VehicleStatus@BoxLayout>:
+  # Python properties
+  statusLight: kvStatusLight
+  loopFps: kvLoopFps
+  camFps: kvCamFps
+  # Customize some layout attributes
+  orientation: 'horizontal'
+  size_hint_y: None
+  height: 40
+  size_hint_x: 1
+  pos_hint: {'top': 1}
+  padding: 2
+  spacing: 2
+
+
+  Label:
+    text: 'Vehicle Status'
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 150
+    markup: True
+    text_size: self.size
+
+  Label:
+    bgnColor: 0, 1, 0, 1
+    canvas.before:
+      Color:
+        rgba: self.bgnColor
+      Rectangle:
+        pos: self.pos
+        size: self.size
+    id: kvStatusLight
+    text: ''
+    size_hint_x: None
+    width: 20
+    size_hint_y: None
+    height: 20
+    pos_hint: {"center_x":0.5, "center_y":0.5}    
+
+  Label:
+    id: kvLoopFps
+    text: 'Primary Loop (FPS): 00'
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
+
+  Label:
+    id: kvCamFps
+    text: 'Camera (FPS): 00'
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
