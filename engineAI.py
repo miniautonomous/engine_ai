@@ -7,7 +7,8 @@ from kivy.properties import ObjectProperty
 from guiUtils import userPath
 
 Builder.load_file('kvSubPanels/camera.kv')        # Layout file for GUI sub-panel
-Builder.load_file('kvSubPanels/vehiclestatus.kv')        # Layout file for GUI sub-panel
+Builder.load_file('kvSubPanels/vehiclestatus.kv') # Layout file for GUI sub-panel
+Builder.load_file('kvSubPanels/pwmsettings.kv')   # Layout file for GUI sub-panel
 Builder.load_file('kvSubPanels/powercontrols.kv') # Layout file for GUI sub-panel
 Builder.load_file('kvSubPanels/filediag.kv')      # Layout file for GUI sub-panel
 Builder.load_file('kvSubPanels/statusbar.kv')     # Layout file for GUI sub-panel

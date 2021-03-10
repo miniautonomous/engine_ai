@@ -15,7 +15,7 @@
   # define these classes in their own *.kv files are 1) re-usability or modularity and 2) keeping
   # the file size/length smaller. For example the "FileDiag.kv" can easily be re-used in various
   # applications 
-  rows: 5
+  rows: 6
   # Define properties that can be accessed directly in python instead of using the Kivy "ids"
   # dictionary to access the various widgets properties. This adds a little bit of overhead
   # here since the Python properties have to be defined, but it also makes for slightly
@@ -26,6 +26,7 @@
   powerCtrls: kvPowerCtrls   # This links the Python property to the Kivy id
   fileDiag: kvLytFileDiag    # This links the Python property to the Kivy id
   vehStatus: kvVehStatus  # This links the Python property to the Kivy id
+  pwmSettings: kvPwmSettings  # This links the Python property to the Kivy id
   statusBar: kvLytStatusBar  # This links the Python property to the Kivy id
   # Instantiate a custom Kivy class that is defined in the "filediag.kv" file sub-panel
   PowerCtrls:
@@ -37,6 +38,8 @@
     id: kvLytFileDiag
   VehicleStatus:
     id: kvVehStatus
+  PWMsettings:
+    id: kvPwmSettings
   # Instantiate a custom Kivy class that is defined in the "status.kv" file sub-panel
   StatusBar:
     id: kvLytStatusBar

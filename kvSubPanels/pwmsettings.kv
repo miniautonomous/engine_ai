@@ -1,0 +1,98 @@
+#:kivy 1.10.0
+#
+# Description:
+#
+#
+# MIT License
+# Copyright (c) 2021 Mini Autonomous
+#
+#===================================================================================================
+# create a new Kivy class "PWMsettings" based on BoxLayout.
+# Note: Kivy classes MUST start with a capital.
+<PWMsettings@BoxLayout>:
+  # Python properties
+  # Customize some layout attributes
+  orientation: 'horizontal'
+  size_hint_y: None
+  height: 67
+  size_hint_x: 1
+  pos_hint: {'top': 1}
+  padding: 2
+  spacing: 2
+  canvas.before:
+    Color:
+      rgba: .117, .376, .553, 1
+    Rectangle:
+      # self here refers to the widget i.e BoxLayout
+      pos: self.pos
+      size: self.size
+
+
+  Label:
+    text: 'PWM Settings'
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 150
+    markup: True
+    text_size: self.size
+
+  GridLayout:
+    padding: 2
+    spacing: 2
+    rows: 2
+
+    BoxLayout:
+      orientation: 'horizontal'
+      canvas.before:
+        Color:
+          rgba: .217, .476, .653, 1
+        Rectangle:
+          # self here refers to the widget i.e BoxLayout
+          pos: self.pos
+          size: self.size
+      Label:
+        text: 'Throttle'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+
+      Label:
+        text: 'Max'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+
+      TextInput:
+        # id: kvStartLearnRate
+        text: '1500'
+        multiline: False
+        # valign: 'middle'
+        halign: 'center'
+        text_size: self.size
+        # on_text_validate: app.updateCfgDictFromUI()
+        # size_hint_x: None
+        # width: 60
+
+
+    BoxLayout:
+      orientation: 'horizontal'
+      canvas.before:
+        Color:
+          rgba: .217, .476, .653, 1
+        Rectangle:
+          # self here refers to the widget i.e BoxLayout
+          pos: self.pos
+          size: self.size
+      Label:
+        text: 'Steering Max: 1500'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+
+      Label:
+        text: 'Steering Min: 1500'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
