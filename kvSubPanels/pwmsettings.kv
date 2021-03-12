@@ -44,6 +44,7 @@
     rows: 2
 
     BoxLayout:
+      # Use to set the "row" background color
       orientation: 'horizontal'
       canvas.before:
         Color:
@@ -52,31 +53,66 @@
           # self here refers to the widget i.e BoxLayout
           pos: self.pos
           size: self.size
-      Label:
-        text: 'Throttle'
-        halign: 'center'
-        valign: 'middle'
-        text_size: self.size
+      # BoxLayout:
+      #   # Empty box to occupy space on the right side of the main layout
+      #   orientation: 'horizontal'
+      #   size_hint_x: None
+      #   width: self.parent.size[0]*0.2
+      BoxLayout:
+        orientation: 'horizontal'
+        size_hint_x: None
+        width: 180
+        Label:
+          text: 'Throtttle Min:'
+          halign: 'center'
+          valign: 'middle'
+          text_size: self.size
+        TextInput:
+          # id: kvStartLearnRate
+          text: '1500'
+          multiline: False
+          # valign: 'middle'
+          halign: 'center'
+          text_size: self.size
+          # on_text_validate: app.updateCfgDictFromUI()
+          size_hint_x: None
+          width: 60
 
-      Label:
-        text: 'Max'
-        halign: 'center'
-        valign: 'middle'
-        text_size: self.size
+      BoxLayout:
+        # Empty box to occupy space on the right side of the main layout
+        orientation: 'horizontal'
+        size_hint_x: None
+        width: self.parent.size[0]*0.2
+      BoxLayout:
+        orientation: 'horizontal'
+        size_hint_x: None
+        width: 180
+        Label:
+          text: 'Throtttle Max:'
+          halign: 'center'
+          valign: 'middle'
+          text_size: self.size
+        TextInput:
+          # id: kvStartLearnRate
+          text: '1500'
+          multiline: False
+          # valign: 'middle'
+          halign: 'center'
+          text_size: self.size
+          # on_text_validate: app.updateCfgDictFromUI()
+          size_hint_x: None
+          width: 60
+      # BoxLayout:
+      #   # Empty box to occupy space on the right side of the main layout
+      #   orientation: 'horizontal'
+      #   size_hint_x: None
+      #   width: self.parent.size[0]*0.1
 
-      TextInput:
-        # id: kvStartLearnRate
-        text: '1500'
-        multiline: False
-        # valign: 'middle'
-        halign: 'center'
-        text_size: self.size
-        # on_text_validate: app.updateCfgDictFromUI()
-        # size_hint_x: None
-        # width: 60
+
 
 
     BoxLayout:
+      # Use to set the "row" background color
       orientation: 'horizontal'
       canvas.before:
         Color:
