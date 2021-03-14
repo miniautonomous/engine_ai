@@ -3,6 +3,7 @@ from kivy.lang import Builder
 from kivy.core.window import Window
 from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
+from kivy.clock import Clock
 # Custom module for miscellaneous utility classes to support a GUI.
 from guiUtils import userPath
 
@@ -23,12 +24,27 @@ class engineApp(App):
     The Kivy "build" method is used here instead of the standard __init__ to define the various
     class properties
   """
+
+  def driveLoop(self, dt):
+    print('hello')
+
+
+  def startDrive(self):
+    if self.root.powerCtrls.power.text == '[color=00ff00]Power ON[/color]':
+      # The power button is already on, so turn everything off
+      Clock.unschedule(self.driveLoop)
+      self.root.powerCtrls.power.text = 'Power OFF'
+    else:
+      Clock.schedule_interval(self.driveLoop, 1/40)
+      self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+
+
   def build(self):
     """
     This is the first method that Kivy calls to build the GUI.
     """
     self.title = 'EngineAppGUI (ver0.0r210303)'
-    self.icon = 'miniAutoLogoV2_32x32.jpg'
+    self.icon = 'img/logoTitleBarV2_32x32.png'
     # This initialization file is used to keep the last file/folder the user has used so it can be
     # re-open easily the next time the user user wants to select a file.  It also saves the
     # location and size of the UI window when it was closed so the next time the UI is opened it
