@@ -6,7 +6,7 @@ from kivy.properties import ObjectProperty
 from kivy.clock import Clock
 
 # Custom module for miscellaneous utility classes to support a GUI.
-from guiUtils import userPath
+from utils.guiUtils import userPath
 
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camera.kv')
@@ -79,58 +79,57 @@ class EngineApp(App):
 
 
 class EngineAppGUI(GridLayout):
-  """
-  This will instantiate the "root" Kivy property and the name used here MUST match exactly the Kivy
-  class name used in the engine.kv main file.
-  """
-  imgTexture = ObjectProperty()   # kivy texture instance to display images
+    # kivy texture instance to display images
+    imgTexture = ObjectProperty()
 
-  def __init__(self, mainAppRef):
-    """
-      Object constructor method used to initiate the UI window.
+    def __init__(self, main_app_ref):
+        """
+          Object constructor method used to initiate the UI window.
 
-      Also pass as parameter the App object reference so that any App property or methods can
-      easily be accessed in this class directly if needed.
-    """
-    GridLayout.__init__(self)    # instantiate the parent class
-    self.app = mainAppRef        # Property to access the App properties easily, e.g.,
-    # the initialization file where last window properties are saved.
-    #------------------------------------ GUI Window properties -----------------------------------#
-    # Set the base window properties. Note that Kivy will automatically use this new Window object
-    self.uiWindow = Window
-    self.uiWindow.borderless = False
-    # Canvases default background to light blue
-    self.uiWindow.clearcolor = ([.01, .2, .36, 1])
-    self.uiWindow.bind(on_request_close=self.uiCloseWindow)
-    # Adjust the overall window location & size if the various parameters are available in the
-    # initialization file
-    winTmp = self.app.file_IO.appsGetDflt('winTop')
-    if winTmp is not None:
-      self.uiWindow.top = winTmp
-    winTmp = self.app.file_IO.appsGetDflt('winLeft')
-    if winTmp is not None:
-      self.uiWindow.left = winTmp
-    winTmp = self.app.file_IO.appsGetDflt('winSize')
-    if winTmp is not None:
-      self.uiWindow.size = winTmp
-    else:
-      # If the size is NOT available, then default it to the following
-      self.uiWindow.size = (1000, 500)
+          This will instantiate the "root" Kivy property and the name used here MUST match exactly the Kivy
+          class name used in the engine.kv main file.
 
+          Also pass as parameter the App object reference so that any App property or methods can
+          easily be accessed in this class directly if needed.
+        """
+        # Instantiate the parent class
+        GridLayout.__init__(self)
 
-  def uiCloseWindow(self, notUsed):
-    """
-      This method is used to do some clean up just before the window is closed.
+        # Property to access the App properties easily
+        self.app = main_app_ref
+        self.uiWindow = Window
+        self.uiWindow.borderless = False
 
-      Callback method that is bind to the "on_request_close", i.e., last method executed before
-      the window is actually closed.
-    """
-    # Save the current window position so that the next window re-opens at the same position and
-    # size that the user last left it
-    self.app.file_IO.appCfg['winTop'] = self.uiWindow.top
-    self.app.file_IO.appCfg['winLeft'] = self.uiWindow.left
-    self.app.file_IO.appCfg['winSize'] = self.uiWindow.size
-    self.app.file_IO.appsWriteDfltVal()
+        # Canvases default background to light blue
+        self.uiWindow.clear_color = ([.01, .2, .36, 1])
+        self.uiWindow.bind(on_request_close=self.ui_close_window)
+
+        # Window initialization based on last instance of app use
+        win_tmp = self.app.file_IO.appsGetDflt('winTop')
+        if win_tmp is not None:
+            self.uiWindow.top = win_tmp
+        win_tmp = self.app.file_IO.appsGetDflt('winLeft')
+        if win_tmp is not None:
+            self.uiWindow.left = win_tmp
+        win_tmp = self.app.file_IO.appsGetDflt('winSize')
+        if win_tmp is not None:
+            self.uiWindow.size = win_tmp
+        else:
+            self.uiWindow.size = (1000, 500)
+
+    def ui_close_window(self, _):
+        """
+          This method is used to do some clean up just before the window is closed.
+
+          Callback method that is bind to the "on_request_close", i.e., last method executed before
+          the window is actually closed.
+        """
+        # Save the current window position so that the next window re-opens at the same position and
+        # size that the user last left it
+        self.app.file_IO.appCfg['winTop'] = self.uiWindow.top
+        self.app.file_IO.appCfg['winLeft'] = self.uiWindow.left
+        self.app.file_IO.appCfg['winSize'] = self.uiWindow.size
+        self.app.file_IO.appsWriteDfltVal()
 
 
 if __name__ == "__main__":
