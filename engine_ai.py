@@ -1,3 +1,6 @@
+import numpy as np
+import os
+import sys
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -7,6 +10,11 @@ from kivy.clock import Clock
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.guiUtils import userPath
+from utils.numeric_functions import GeneralUtils
+
+# Camera related imports
+import pyrealsense2 as rs
+import cv2
 
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camera.kv')
@@ -18,6 +26,23 @@ Builder.load_file('kvSubPanels/statusbar.kv')
 
 
 class EngineApp(App):
+    def __init__(self):
+        """
+            App back end to drive the AI framework.
+
+        """
+        App.__init__(self)
+
+        # Parameter initialization
+        self.arduino_board = None
+        self.rc_mode = None
+        self.camera_real_rate = 0
+        self.drive_loop_buffer_fps = None
+        self.camera_buffer_fps = None
+        self.car_name = "miniAutonomous"
+        self.net_loaded = False
+        self.functional_utils = GeneralUtils()
+
     def build(self):
         """
           This is the first method that Kivy calls to build the GUI.
@@ -35,7 +60,8 @@ class EngineApp(App):
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
         self.file_IO = userPath('engineApp.py')                                                                         # noqa
-        return EngineAppGUI(self)
+        self.ui = EngineAppGUI(self)                                                                                    # noqa
+        return self.ui
 
     def drive_loop(self, dt: float):                                                                                    # noqa
         """
@@ -47,6 +73,12 @@ class EngineApp(App):
         dt: (float) time step given at 1/dt
         """
         print('hello:'+str(dt))
+
+        # Drive the car yourself
+
+        # Have the AI drive the car
+
+        # Log data for training
 
     def start_drive(self):
         """
@@ -77,6 +109,37 @@ class EngineApp(App):
             self.root.fileDiag.lblFilePath.text = self.file_IO.currentPaths[0]
             self.root.fileDiag.selectButton.text = 'Selected File'
 
+    def start_camera(self):
+        """
+            Capture an image from a Intel Real Sense Camera
+        """
+        self.functional_utils.initTimer()
+        frames = self.ui.rsPipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        if not color_frame:
+            self.ui.rsIntelOn = False
+
+        self.ui.imgMain = np.asanyarray(color_frame.get_data())
+        # Process the image to display to the user
+        display_image = np.flipud(self.ui.imgMain)
+        display_image = display_image[:, :, [2, 1, 0]]
+        # Update the UI texture to display the image to the user
+        self.ui.imgTexture.blit_buffer(display_image.reshape(self.ui.imgNumPixels *
+                                                             self.ui.imgWidthFactor))
+        self.ui.canvas.ask_update()  # This is required to have the image refreshed and it
+        # refers to the canvas "camera.kv" file
+        # Compute the camera actual frame rate
+        dtFps = self.uiUtils.getTimer()
+        if dtFps == 0:
+            print('rsIntelDaq method: Imaged dropped')
+            dtFps = 1 / 30  # default the FPS to 30 in case a value does NOT get read
+        self.camBufferFPS, fpsAvg = self.functional_utils.moving_avg(self.camBufferFPS, 1 / dtFps)
+        self.camRealRate = round(fpsAvg, 1)
+
+    @staticmethod
+    def start_arduino(self):
+        print('hello')
+
 
 class EngineAppGUI(GridLayout):
     # kivy texture instance to display images
@@ -99,6 +162,15 @@ class EngineAppGUI(GridLayout):
         self.app = main_app_ref
         self.uiWindow = Window
         self.uiWindow.borderless = False
+
+        # Display window for camera feed
+        self.imgMain = []
+        self.imgWidthFactor = 1
+        self.imgNumPixes = None
+
+        # Camera default
+        self.rsPipeline = rs.pipeline()
+        self.rsConfig = rs.config()
 
         # Canvases default background to light blue
         self.uiWindow.clear_color = ([.01, .2, .36, 1])
