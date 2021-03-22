@@ -56,6 +56,8 @@ class EngineApp(App):
         self.rs_frame_rate = 60
         # Number of channels of input image
         self.color_depth = 3
+        # Camera is off at start
+        self.rs_is_on = False
 
 
     def build(self):
@@ -78,16 +80,20 @@ class EngineApp(App):
         self.ui = EngineAppGUI(self)                                                                                    # noqa
         return self.ui
 
-    def drive_loop(self, dt: float):                                                                                    # noqa
+    def drive_loop(self, dt: int):                                                                                    # noqa
         """
           Main loop that drives the AI framework, from here forwards
           referred to as drive system. (Because that's how we roll.)
           
         Parameters
         ----------
-        dt: (float) time step given at 1/dt
+        dt: (int) time step given at 1/dt
         """
-        print('hello:'+str(dt))
+        # self.drive_loop_buffer_fps, fp_avg =\
+        #     self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
+        # Run the camera
+        self.run_camera()
+        print('Running at:'+str(dt))
 
         # Drive the car yourself
 
@@ -97,28 +103,35 @@ class EngineApp(App):
 
     def start_drive(self):
         """
-            Turns on the drive system.
+            Turns the drive system on and off.
         """
+        # Turn things OFF
         if self.root.powerCtrls.power.text == '[color=00ff00]Power ON[/color]':
-            # Turn things OFF
             Clock.unschedule(self.drive_loop)
             self.root.powerCtrls.power.text = 'Power OFF'
-            # Turn the camera off        try:
+            # Turn the camera off
             try:
                 self.rs_pipeline.stop()
             except:
                 pass
+        # Turn things ON
         else:
-            # Turn things ON
             Clock.schedule_interval(self.drive_loop, 1 / 40)
             self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+
             # Start the Intel RealSense Camera
             self.rs_config.enable_stream(rs.stream.color,
                                          self.ui.image_width,
                                          self.ui.image_height,
                                          rs.format.bgr8, int(self.rs_frame_rate))
             self.rs_pipeline.start(self.rs_config)
-            self.start_camera()
+            # Test it by trying to get an image
+            frames = self.rs_pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            if not color_frame:
+                self.rs_is_on = False
+            else:
+                self.rs_is_on = True
 
     def select_file(self):
         """
@@ -136,7 +149,7 @@ class EngineApp(App):
             self.root.fileDiag.lblFilePath.text = self.file_IO.currentPaths[0]
             self.root.fileDiag.selectButton.text = 'Selected File'
 
-    def start_camera(self):
+    def run_camera(self):
         """
             Capture an image from a Intel Real Sense Camera
         """
@@ -166,8 +179,8 @@ class EngineApp(App):
             print('rsIntelDaq method: Imaged dropped')
             # Default is set to 30 in case of a frame drop
             delta_fps = 1 / 30
-        self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps, 1 / delta_fps)
-        self.camera_real_rate = round(fps_avg, 1)
+        # self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps, 1 / delta_fps)
+        # self.camera_real_rate = round(fps_avg, 1)
 
     @staticmethod
     def start_arduino(self):
