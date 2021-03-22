@@ -10,29 +10,18 @@
 # Note: Kivy classes MUST start with a capital and for this "main" class the name must match
 #       exactly with the Python class name used to define the GUI
 <EngineAppGUI>:
-  # In this case, the main window is separated in seven rows using a GridLayout.  Each row uses
-  # a custom Kivy class that is defined in separate *.kv files. The two mains motivations to 
-  # define these classes in their own *.kv files are 1) re-usability or modularity and 2) keeping
-  # the file size/length smaller. For example the "FileDiag.kv" can easily be re-used in various
-  # applications 
+
   rows: 6
-  # Define properties that can be accessed directly in python instead of using the Kivy "ids"
-  # dictionary to access the various widgets properties. This adds a little bit of overhead
-  # here since the Python properties have to be defined, but it also makes for slightly
-  # cleaner coding on the Python side since the property "ids" does not have to be called all over
-  # the place
-  #
-  # Define properties that can be accessed in Python using "self.root.<property name>"
   powerCtrls: kvPowerCtrls   # This links the Python property to the Kivy id
   fileDiag: kvLytFileDiag    # This links the Python property to the Kivy id
   vehStatus: kvVehStatus  # This links the Python property to the Kivy id
   pwmSettings: kvPwmSettings  # This links the Python property to the Kivy id
   statusBar: kvLytStatusBar  # This links the Python property to the Kivy id
+
   # Instantiate a custom Kivy class that is defined in the "filediag.kv" file sub-panel
   PowerCtrls:
     id: kvPowerCtrls
-  # Instantiate a Kivy BoxLayout class
-  Camera:
+  CamCtrls:
     size_hint_y: 1
   FileDiag:
     id: kvLytFileDiag

@@ -7,13 +7,13 @@
 # Copyright (c) 2021 Mini Autonomous
 #
 #===================================================================================================
-<Camera@FloatLayout>:
+<CamCtrls@FloatLayout>:
   imgMsg: kvImgMessage
   size_hint_x: None
   width: root.parent.width
   canvas:
     Rectangle:
-      texture: root.parent.imgTexture
+      texture: root.parent.image_texture
       pos: self.pos
       size: self.size
 

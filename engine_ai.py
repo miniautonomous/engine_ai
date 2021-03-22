@@ -7,6 +7,7 @@ from kivy.core.window import Window
 from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
 from kivy.clock import Clock
+from kivy.graphics.texture import Texture
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.guiUtils import userPath
@@ -17,7 +18,7 @@ import pyrealsense2 as rs
 import cv2
 
 # Layout files for GUI sub-panels
-Builder.load_file('kvSubPanels/camera.kv')
+Builder.load_file('kvSubPanels/camctrls.kv')
 Builder.load_file('kvSubPanels/vehiclestatus.kv')
 Builder.load_file('kvSubPanels/pwmsettings.kv')
 Builder.load_file('kvSubPanels/powercontrols.kv')
@@ -36,12 +37,26 @@ class EngineApp(App):
         # Parameter initialization
         self.arduino_board = None
         self.rc_mode = None
-        self.camera_real_rate = 0
         self.drive_loop_buffer_fps = None
         self.camera_buffer_fps = None
+        self.camera_real_rate = 0
         self.car_name = "miniAutonomous"
         self.net_loaded = False
         self.functional_utils = GeneralUtils()
+
+        # Camera pipeline creation
+        self.rs_pipeline = rs.pipeline()
+        self.rs_config = rs.config()
+
+        # Set a variety of default values
+        self._set_defaults()
+
+    def _set_defaults(self):
+        # Set camera related defaults
+        self.rs_frame_rate = 60
+        # Number of channels of input image
+        self.color_depth = 3
+
 
     def build(self):
         """
@@ -59,7 +74,7 @@ class EngineApp(App):
         """
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
-        self.file_IO = userPath('engineApp.py')                                                                         # noqa
+        self.file_IO = userPath('EngineApp.py')                                                                         # noqa
         self.ui = EngineAppGUI(self)                                                                                    # noqa
         return self.ui
 
@@ -88,10 +103,22 @@ class EngineApp(App):
             # Turn things OFF
             Clock.unschedule(self.drive_loop)
             self.root.powerCtrls.power.text = 'Power OFF'
+            # Turn the camera off        try:
+            try:
+                self.rs_pipeline.stop()
+            except:
+                pass
         else:
             # Turn things ON
             Clock.schedule_interval(self.drive_loop, 1 / 40)
             self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+            # Start the Intel RealSense Camera
+            self.rs_config.enable_stream(rs.stream.color,
+                                         self.ui.image_width,
+                                         self.ui.image_height,
+                                         rs.format.bgr8, int(self.rs_frame_rate))
+            self.rs_pipeline.start(self.rs_config)
+            self.start_camera()
 
     def select_file(self):
         """
@@ -114,7 +141,8 @@ class EngineApp(App):
             Capture an image from a Intel Real Sense Camera
         """
         self.functional_utils.initTimer()
-        frames = self.ui.rsPipeline.wait_for_frames()
+        # Process a frame
+        frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
         if not color_frame:
             self.ui.rsIntelOn = False
@@ -124,17 +152,22 @@ class EngineApp(App):
         display_image = np.flipud(self.ui.imgMain)
         display_image = display_image[:, :, [2, 1, 0]]
         # Update the UI texture to display the image to the user
-        self.ui.imgTexture.blit_buffer(display_image.reshape(self.ui.imgNumPixels *
-                                                             self.ui.imgWidthFactor))
-        self.ui.canvas.ask_update()  # This is required to have the image refreshed and it
-        # refers to the canvas "camera.kv" file
+        self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
+                                                                self.ui.image_width_factor))
+        """
+            This next command is required ot have the image refreshed and it refers to the
+            canvas "camctrls.kv" file found in kvSubPanels.
+        """
+        self.ui.canvas.ask_update()
+
         # Compute the camera actual frame rate
-        dtFps = self.uiUtils.getTimer()
-        if dtFps == 0:
+        delta_fps = self.functional_utils.getTimer()
+        if delta_fps == 0:
             print('rsIntelDaq method: Imaged dropped')
-            dtFps = 1 / 30  # default the FPS to 30 in case a value does NOT get read
-        self.camBufferFPS, fpsAvg = self.functional_utils.moving_avg(self.camBufferFPS, 1 / dtFps)
-        self.camRealRate = round(fpsAvg, 1)
+            # Default is set to 30 in case of a frame drop
+            delta_fps = 1 / 30
+        self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps, 1 / delta_fps)
+        self.camera_real_rate = round(fps_avg, 1)
 
     @staticmethod
     def start_arduino(self):
@@ -143,7 +176,7 @@ class EngineApp(App):
 
 class EngineAppGUI(GridLayout):
     # kivy texture instance to display images
-    imgTexture = ObjectProperty()
+    image_texture = ObjectProperty()
 
     def __init__(self, main_app_ref):
         """
@@ -168,9 +201,11 @@ class EngineAppGUI(GridLayout):
         self.imgWidthFactor = 1
         self.imgNumPixes = None
 
-        # Camera default
-        self.rsPipeline = rs.pipeline()
-        self.rsConfig = rs.config()
+        # Set VGA resolution for the camera output window
+        self.image_width = 640
+        self.image_height = 480
+        # Define if one or two images need to be displayed (i.e. using a stereo cam)
+        self.image_width_factor = 1
 
         # Canvases default background to light blue
         self.uiWindow.clear_color = ([.01, .2, .36, 1])
@@ -188,6 +223,18 @@ class EngineAppGUI(GridLayout):
             self.uiWindow.size = win_tmp
         else:
             self.uiWindow.size = (1000, 500)
+
+        # Create the original texture to display the image when the software is started.
+        self.image_texture = Texture.create(size=(self.image_width * self.image_width_factor,
+                                                  self.image_height),
+                                            colorfmt='rgb', bufferfmt='ubyte')
+        self.image_number_pixels = self.image_width * self.image_height * self.app.color_depth
+
+    # def drive_loop_on_off(self):
+    #     # Turn things on
+    #     if self.camctrls.camOnOff.active:
+    #
+    #     # Turn things off:
 
     def ui_close_window(self, _):
         """
