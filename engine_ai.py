@@ -1,6 +1,6 @@
 import numpy as np
-import os
-import sys
+# import os
+# import sys
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -16,7 +16,7 @@ from utils.pyArduino import Arduino
 
 # Camera related imports
 import pyrealsense2 as rs
-import cv2
+# import cv2
 
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camctrls.kv')
@@ -40,8 +40,18 @@ class EngineApp(App):
         self.drive_loop_buffer_fps = None
         self.camera_buffer_fps = None
         self.arduino_board = None
+        self.file_IO = None
+        self.ui = None
         self.car_name = "miniAutonomous"
         self.functional_utils = GeneralUtils()
+
+        # Arduino connected?
+        self.board_available = False
+        # Camera on?
+        self.rs_is_on = False
+        # Net loaded?
+        self.net_loaded = False
+        # Is the car speaking to you in French? Just checking that you are reading the comments...
 
         # Set a variety of default values
         self._set_defaults()
@@ -60,12 +70,6 @@ class EngineApp(App):
         self.rs_frame_rate = 60
         # Number of channels of input image
         self.color_depth = 3
-        # Camera is off at start
-        self.rs_is_on = False
-        # Is the Arduino board available
-        self.board_available = True
-        # Has a model been loaded
-        self.net_loaded = False
 
     def _start_systems(self):
         """
@@ -95,11 +99,11 @@ class EngineApp(App):
         """
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
-        self.file_IO = userPath('EngineApp.py')                                                                         # noqa
-        self.ui = EngineAppGUI(self)                                                                                    # noqa
+        self.file_IO = userPath('EngineApp.py')
+        self.ui = EngineAppGUI(self)
         return self.ui
 
-    def drive_loop(self, dt: int):                                                                                      # noqa
+    def drive_loop(self, dt: int):
         """
           Main loop that drives the AI framework, from here forwards
           referred to as drive system. (Because that's how we roll.)
@@ -154,7 +158,7 @@ class EngineApp(App):
             if not color_frame:
                 self.rs_is_on = False
             else:
-                self.rs_is_on = True                                                                                    #noqa
+                self.rs_is_on = True
 
     def select_file(self):
         """
@@ -219,9 +223,10 @@ class EngineApp(App):
 
     def stop_arduino(self):
         # TODO: Discuss if there is a need to setup an arduino disconnect with Francois
-        self.aBoard.Servos.detach(9)
-        self.aBoard.Servos.detach(10)
-        self.aBoard.close()
+        self.arduino_board.Servos.detach(9)
+        self.arduino_board.Servos.detach(10)
+        self.arduino_board.close()
+
 
 class EngineAppGUI(GridLayout):
     # kivy texture instance to display images
