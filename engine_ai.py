@@ -12,6 +12,7 @@ from kivy.graphics.texture import Texture
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.guiUtils import userPath
 from utils.numeric_functions import GeneralUtils
+from utils.pyArduino import Arduino
 
 # Camera related imports
 import pyrealsense2 as rs
@@ -35,30 +36,51 @@ class EngineApp(App):
         App.__init__(self)
 
         # Parameter initialization
-        self.arduino_board = None
         self.rc_mode = None
         self.drive_loop_buffer_fps = None
         self.camera_buffer_fps = None
-        self.camera_real_rate = 0
+        self.arduino_board = None
         self.car_name = "miniAutonomous"
-        self.net_loaded = False
         self.functional_utils = GeneralUtils()
-
-        # Camera pipeline creation
-        self.rs_pipeline = rs.pipeline()
-        self.rs_config = rs.config()
 
         # Set a variety of default values
         self._set_defaults()
 
+        # Initiate camera and Arduino
+        self._start_systems()
+
     def _set_defaults(self):
+        """
+            Set default values for various parameters.
+
+        """
+        # Measured frame rate of camera
+        self.camera_real_rate = 0
         # Set camera related defaults
         self.rs_frame_rate = 60
         # Number of channels of input image
         self.color_depth = 3
         # Camera is off at start
         self.rs_is_on = False
+        # Is the Arduino board available
+        self.board_available = True
+        # Has a model been loaded
+        self.net_loaded = False
 
+    def _start_systems(self):
+        """
+            Kick on the camera and the Arduino.
+
+        """
+        # Camera pipeline creation
+        try:
+            self.rs_pipeline = rs.pipeline()
+            self.rs_config = rs.config()
+        except ValueError:
+            print('RealTime Camera connection issue. Please check.')
+
+        # Start the Arduino
+        self.start_arduino()
 
     def build(self):
         """
@@ -70,9 +92,6 @@ class EngineApp(App):
 
           (ii) The main app class and the GUI class pass references of themselves to each other to facilitate
                exchange of parameters.
-
-          (iii) The Kivy "build" method is used here instead of the standard __init__ to define the various
-                class properties
         """
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
@@ -80,7 +99,7 @@ class EngineApp(App):
         self.ui = EngineAppGUI(self)                                                                                    # noqa
         return self.ui
 
-    def drive_loop(self, dt: int):                                                                                    # noqa
+    def drive_loop(self, dt: int):                                                                                      # noqa
         """
           Main loop that drives the AI framework, from here forwards
           referred to as drive system. (Because that's how we roll.)
@@ -89,8 +108,8 @@ class EngineApp(App):
         ----------
         dt: (int) time step given at 1/dt
         """
-        # self.drive_loop_buffer_fps, fp_avg =\
-        #     self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
+        self.drive_loop_buffer_fps, fp_avg =\
+            self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
         # Run the camera
         self.run_camera()
         print('Running at:'+str(dt))
@@ -109,11 +128,15 @@ class EngineApp(App):
         if self.root.powerCtrls.power.text == '[color=00ff00]Power ON[/color]':
             Clock.unschedule(self.drive_loop)
             self.root.powerCtrls.power.text = 'Power OFF'
-            # Turn the camera off
+
+            # Camera
             try:
                 self.rs_pipeline.stop()
-            except:
+            except ValueError:
                 pass
+
+            # Arduino
+
         # Turn things ON
         else:
             Clock.schedule_interval(self.drive_loop, 1 / 40)
@@ -131,7 +154,7 @@ class EngineApp(App):
             if not color_frame:
                 self.rs_is_on = False
             else:
-                self.rs_is_on = True
+                self.rs_is_on = True                                                                                    #noqa
 
     def select_file(self):
         """
@@ -182,10 +205,23 @@ class EngineApp(App):
         # self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps, 1 / delta_fps)
         # self.camera_real_rate = round(fps_avg, 1)
 
-    @staticmethod
     def start_arduino(self):
-        print('hello')
+        try:
+            # Set the serial rate
+            self.arduino_board = Arduino(115200)
+            self.board_available = True
+        except ValueError:
+            print('Issues connecting with the Arduino Mega. Please check.')
 
+        if self.board_available:
+            self.arduino_board.Servos.attach(9, min=self.ui.steering_min, max=self.ui.steering_max)
+            self.arduino_board.Servos.attach(10, min=self.ui.throttle_min, max=self.ui.throttle_max)
+
+    def stop_arduino(self):
+        # TODO: Discuss if there is a need to setup an arduino disconnect with Francois
+        self.aBoard.Servos.detach(9)
+        self.aBoard.Servos.detach(10)
+        self.aBoard.close()
 
 class EngineAppGUI(GridLayout):
     # kivy texture instance to display images
@@ -220,6 +256,16 @@ class EngineAppGUI(GridLayout):
         # Define if one or two images need to be displayed (i.e. using a stereo cam)
         self.image_width_factor = 1
 
+        # Steering PWM settings, (done here to display to the user)
+        self.steering_neutral = 1452
+        self.steering_min = 970
+        self.steering_max = 1944
+
+        # Throttle PWM settings
+        self.throttle_neutral = 1520
+        self.throttle_min = 500
+        self.throttle_max = 2500
+
         # Canvases default background to light blue
         self.uiWindow.clear_color = ([.01, .2, .36, 1])
         self.uiWindow.bind(on_request_close=self.ui_close_window)
@@ -242,12 +288,6 @@ class EngineAppGUI(GridLayout):
                                                   self.image_height),
                                             colorfmt='rgb', bufferfmt='ubyte')
         self.image_number_pixels = self.image_width * self.image_height * self.app.color_depth
-
-    # def drive_loop_on_off(self):
-    #     # Turn things on
-    #     if self.camctrls.camOnOff.active:
-    #
-    #     # Turn things off:
 
     def ui_close_window(self, _):
         """

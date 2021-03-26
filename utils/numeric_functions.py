@@ -22,8 +22,5 @@ class GeneralUtils:
 
     @staticmethod
     def moving_avg(avg_buffer, new_value):
-        if avg_buffer is not None:
-            avg_buffer = np.insert(np.roll(avg_buffer, 1)[1:], 0, new_value)
-        else:
-            avg_buffer = new_value
+        avg_buffer = np.insert(np.roll(avg_buffer, 1)[1:], 0, new_value)
         return avg_buffer, np.mean(avg_buffer)
