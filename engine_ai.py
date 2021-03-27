@@ -30,12 +30,15 @@ Builder.load_file('kvSubPanels/statusbar.kv')
 class EngineApp(App):
     def __init__(self):
         """
-            App back end to drive the AI framework.
+            AI framework that defines the drive system.
+
+            Please study the 'drive_loop' method first to determine
+            how the primary systems are interconnected.
 
         """
         App.__init__(self)
 
-        # Parameter initialization
+        # Parameters
         self.rc_mode = None
         self.drive_loop_buffer_fps = None
         self.camera_buffer_fps = None
@@ -44,6 +47,7 @@ class EngineApp(App):
         self.ui = None
         self.car_name = "miniAutonomous"
         self.functional_utils = GeneralUtils()
+        self.camera_real_rate = 0
 
         # Arduino connected?
         self.board_available = False
@@ -51,7 +55,8 @@ class EngineApp(App):
         self.rs_is_on = False
         # Net loaded?
         self.net_loaded = False
-        # Is the car speaking to you in French? Just checking that you are reading the comments...
+        # Is the car speaking to you in French?
+        # Just checking that you are reading the comments...
 
         # Set a variety of default values
         self._set_defaults()
@@ -64,12 +69,27 @@ class EngineApp(App):
             Set default values for various parameters.
 
         """
-        # Measured frame rate of camera
-        self.camera_real_rate = 0
         # Set camera related defaults
         self.rs_frame_rate = 60
+        # Set the desired rate of the drive loop
+        self.drive_loop_rate = 40
         # Number of channels of input image
         self.color_depth = 3
+        # Length of buffer reel (i.e. how many values are used in moving avg)
+        self.moving_avg_length = 100
+
+        # Creation of buffer arrays
+        """
+            These two buffers help provide a moving average of the frame rate
+            at which the overall framework operates, (input image -> inference -> output command),
+            and that at which the camera is operating, (basic FPS of camera). 
+            These are important to determine if the vehicles drive system is operating
+            at an optimal rate, which should be close to realtime, (~30 fps).
+        """
+        self.drive_loop_buffer_fps = np.full(self.moving_avg_length,
+                                             1 * int(self.rs_frame_rate))
+        self.camera_buffer_fps = np.full(self.moving_avg_length,
+                                         1 * int(self.rs_frame_rate))
 
     def _start_systems(self):
         """
@@ -91,11 +111,12 @@ class EngineApp(App):
           This is the first method that Kivy calls to build the GUI.
 
           Please note:
-           (i) User input for loading a file is tracked via 'file_IO' to keep a history of the prior use of the app
-               and use those selections as the default selections for the current instance
+           (i) User input for loading a file is tracked via 'file_IO' to keep a history
+               of the prior use of the app and use those selections as the default
+               selections for the current instance
 
-          (ii) The main app class and the GUI class pass references of themselves to each other to facilitate
-               exchange of parameters.
+          (ii) The main app class and the GUI class pass references of themselves to each
+               other to facilitate exchange of parameters.
         """
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
@@ -107,6 +128,10 @@ class EngineApp(App):
         """
           Main loop that drives the AI framework, from here forwards
           referred to as drive system. (Because that's how we roll.)
+
+          This is the most critical method of the App class and should
+          be the first lines of code studied if you wish to get a firm
+          grip on the code base.
           
         Parameters
         ----------
@@ -114,6 +139,7 @@ class EngineApp(App):
         """
         self.drive_loop_buffer_fps, fp_avg =\
             self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
+
         # Run the camera
         self.run_camera()
         print('Running at:'+str(dt))
@@ -140,13 +166,20 @@ class EngineApp(App):
                 pass
 
             # Arduino
+            self.stop_arduino()
 
         # Turn things ON
         else:
-            Clock.schedule_interval(self.drive_loop, 1 / 40)
+            # Schedule and start the drive loop
+            """
+                NOTE: This is the call that kicks of the primary drive loop
+                and schedules it at a desired, (user wants), but not actual,
+                (what user actually gets), frequency.
+            """
+            Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
             self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
 
-            # Start the Intel RealSense Camera
+            # Camera
             self.rs_config.enable_stream(rs.stream.color,
                                          self.ui.image_width,
                                          self.ui.image_height,
@@ -159,6 +192,10 @@ class EngineApp(App):
                 self.rs_is_on = False
             else:
                 self.rs_is_on = True
+
+            # Start Arduino
+            if not self.board_available:
+                self.start_arduino()
 
     def select_file(self):
         """
@@ -206,8 +243,9 @@ class EngineApp(App):
             print('rsIntelDaq method: Imaged dropped')
             # Default is set to 30 in case of a frame drop
             delta_fps = 1 / 30
-        # self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps, 1 / delta_fps)
-        # self.camera_real_rate = round(fps_avg, 1)
+        self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps,
+                                                                           1 / delta_fps)
+        self.camera_real_rate = round(fps_avg, 1)
 
     def start_arduino(self):
         try:
@@ -216,6 +254,8 @@ class EngineApp(App):
             self.board_available = True
         except ValueError:
             print('Issues connecting with the Arduino Mega. Please check.')
+            self.board_available = False
+            self.arduino_board = None
 
         if self.board_available:
             self.arduino_board.Servos.attach(9, min=self.ui.steering_min, max=self.ui.steering_max)
@@ -223,9 +263,11 @@ class EngineApp(App):
 
     def stop_arduino(self):
         # TODO: Discuss if there is a need to setup an arduino disconnect with Francois
-        self.arduino_board.Servos.detach(9)
-        self.arduino_board.Servos.detach(10)
-        self.arduino_board.close()
+        if self.board_available:
+            self.arduino_board.Servos.detach(9)
+            self.arduino_board.Servos.detach(10)
+            self.arduino_board.close()
+            self.board_available = False
 
 
 class EngineAppGUI(GridLayout):
