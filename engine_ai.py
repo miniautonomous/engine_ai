@@ -18,6 +18,10 @@ from utils.pyArduino import Arduino
 import pyrealsense2 as rs
 # import cv2
 
+# Servo Pin Numbers
+STEERING_SERVO = 9
+THROTTLE_SERVO = 10
+
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camctrls.kv')
 Builder.load_file('kvSubPanels/vehiclestatus.kv')
@@ -170,15 +174,43 @@ class EngineApp(App):
 
         # Drive the car yourself
         if drive_mode == 'Manual':
-            self.drive_manual()
+            steering_output, throttle_output = self.drive_manual()
         # Have the car drive itself
         else:
-            self.drive_autonomous()
+            steering_output, throttle_output = self.drive_autonomous()
 
-        # Record video
+        print(str(steering_output)+" "+str(throttle_output))
+        # Record data
         if record_on:
+            print('record video')
 
+    def drive_manual(self):
+        """
+            Manual driving option.
 
+        Returns
+        -------
+        steering_output: (int) desired steering output
+        throttle_output: (int) desired throttle output
+        """
+        # Steering
+        steering_output = self.arduino_board.steerIn()
+        # Clip to range if required
+        steering_output = self.functional_utils.chop_value(steering_output,
+                                                           self.ui.steering_min,
+                                                           self.ui.steering_max)
+        self.arduino_board.Servos.write(STEERING_SERVO, steering_output)
+
+        # Throttle
+        throttle_output = self.arduino_board.throttleIn()
+        throttle_output = self.functional_utils.chop_value(throttle_output,
+                                                           self.ui.throttle_min,
+                                                           self.ui.throttle_max)
+        self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+        return steering_output, throttle_output
+
+    def drive_autonomous(self):
+        print('driving autonomously')
 
     def start_drive(self):
         """
@@ -228,11 +260,6 @@ class EngineApp(App):
                 Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
                 self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
 
-    def drive_manual(self):
-
-
-    def drive_autonomous(self):
-
     def select_file(self):
         """
             Help the user select the model HDF5 or the directory to which to store data.
@@ -253,7 +280,7 @@ class EngineApp(App):
         """
             Capture an image from a Intel Real Sense Camera
         """
-        self.functional_utils.initTimer()
+        self.functional_utils.initiate_time()
         # Process a frame
         frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
@@ -274,7 +301,7 @@ class EngineApp(App):
         self.ui.canvas.ask_update()
 
         # Compute the camera actual frame rate
-        delta_fps = self.functional_utils.getTimer()
+        delta_fps = self.functional_utils.get_timer()
         if delta_fps == 0:
             print('rsIntelDaq method: Imaged dropped')
             # Default is set to 30 in case of a frame drop
@@ -294,14 +321,18 @@ class EngineApp(App):
             self.arduino_board = None
 
         if self.board_available:
-            self.arduino_board.Servos.attach(9, min=self.ui.steering_min, max=self.ui.steering_max)
-            self.arduino_board.Servos.attach(10, min=self.ui.throttle_min, max=self.ui.throttle_max)
+            self.arduino_board.Servos.attach(STEERING_SERVO,
+                                             min=self.ui.steering_min,
+                                             max=self.ui.steering_max)
+            self.arduino_board.Servos.attach(THROTTLE_SERVO,
+                                             min=self.ui.throttle_min,
+                                             max=self.ui.throttle_max)
 
     def stop_arduino(self):
         # TODO: Discuss if there is a need to setup an arduino disconnect with Francois
         if self.board_available:
-            self.arduino_board.Servos.detach(9)
-            self.arduino_board.Servos.detach(10)
+            self.arduino_board.Servos.detach(STEERING_SERVO)
+            self.arduino_board.Servos.detach(THROTTLE_SERVO)
             self.arduino_board.close()
             self.board_available = False
 
