@@ -142,13 +142,43 @@ class EngineApp(App):
 
         # Run the camera
         self.run_camera()
-        print('Running at:'+str(dt))
+
+        # Check the desired mode
+        """
+            We are using the four channel options (TQi4ch)
+        """
+        mode_in = self.arduino_board.modeIn()
+        # Set the vehicle to manual or autonomous
+        if mode_in < 1500:
+            drive_mode = 'Manual'
+        else:
+            drive_mode = 'Autonomous'
+
+        # Are we recording?
+        """
+            NOTE: Here we are using a four channel transmitter/receiver,
+            so the option to record from the camera has been separated from
+            the drive mode. You can therefore record to create training
+            data, (manual driving), or you can record to show the vehicle
+            driving itself from the perspective of the vehicle.
+        """
+        record_on = self.arduino_board.recIn()
+        if record_on < 1500:
+            record_on = True
+        else:
+            record_on = False
 
         # Drive the car yourself
+        if drive_mode == 'Manual':
+            self.drive_manual()
+        # Have the car drive itself
+        else:
+            self.drive_autonomous()
 
-        # Have the AI drive the car
+        # Record video
+        if record_on:
 
-        # Log data for training
+
 
     def start_drive(self):
         """
@@ -170,16 +200,7 @@ class EngineApp(App):
 
         # Turn things ON
         else:
-            # Schedule and start the drive loop
-            """
-                NOTE: This is the call that kicks of the primary drive loop
-                and schedules it at a desired, (user wants), but not actual,
-                (what user actually gets), frequency.
-            """
-            Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
-            self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
-
-            # Camera
+            # Start the camera
             self.rs_config.enable_stream(rs.stream.color,
                                          self.ui.image_width,
                                          self.ui.image_height,
@@ -193,9 +214,24 @@ class EngineApp(App):
             else:
                 self.rs_is_on = True
 
-            # Start Arduino
+            # Start the Arduino
             if not self.board_available:
                 self.start_arduino()
+
+            """
+                NOTE: This is the call that kicks of the primary drive loop
+                and schedules it at a desired, (user wants), but not actual,
+                (what user actually gets), frequency.
+            """
+            # Schedule and start the drive loop
+            if self.rs_is_on and self.board_available:
+                Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
+                self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+
+    def drive_manual(self):
+
+
+    def drive_autonomous(self):
 
     def select_file(self):
         """
@@ -224,9 +260,9 @@ class EngineApp(App):
         if not color_frame:
             self.ui.rsIntelOn = False
 
-        self.ui.imgMain = np.asanyarray(color_frame.get_data())
+        self.ui.image_main = np.asanyarray(color_frame.get_data())
         # Process the image to display to the user
-        display_image = np.flipud(self.ui.imgMain)
+        display_image = np.flipud(self.ui.image_main)
         display_image = display_image[:, :, [2, 1, 0]]
         # Update the UI texture to display the image to the user
         self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
