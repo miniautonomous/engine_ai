@@ -21,7 +21,7 @@ class GeneralUtils:
         return time.time() - self.timerStart
 
     @staticmethod
-    def moving_avg(avg_buffer: np.array, new_value: int):
+    def moving_avg(avg_buffer: np.array, new_value: float):
         """
             Creates a moving average; used to give a stable value for things like
             drive loop and camera frame-rate estimation.

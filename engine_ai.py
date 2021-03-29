@@ -11,6 +11,7 @@ from kivy.graphics.texture import Texture
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.guiUtils import userPath
+from utils.write_hdf5 import StreamToHDF5
 from utils.numeric_functions import GeneralUtils
 from utils.pyArduino import Arduino
 
@@ -49,6 +50,7 @@ class EngineApp(App):
         self.arduino_board = None
         self.file_IO = None
         self.ui = None
+        self.stream_to_file = None
         self.car_name = "miniAutonomous"
         self.functional_utils = GeneralUtils()
         self.camera_real_rate = 0
@@ -126,6 +128,14 @@ class EngineApp(App):
         self.icon = 'img/logoTitleBarV2_32x32.png'
         self.file_IO = userPath('EngineApp.py')
         self.ui = EngineAppGUI(self)
+
+        # Stream file object to record data
+        self.stream_to_file = StreamToHDF5(self.ui.image_width,
+                                           self.ui.image_height,
+                                           self.ui.steering_max,
+                                           self.ui.steering_min,
+                                           self.ui.throttle_neutral,
+                                           self.ui.throttle_max)
         return self.ui
 
     def drive_loop(self, dt: int):
@@ -177,12 +187,15 @@ class EngineApp(App):
             steering_output, throttle_output = self.drive_manual()
         # Have the car drive itself
         else:
-            steering_output, throttle_output = self.drive_autonomous()
+            # @TODO: build this module out
+            steering_output, throttle_output = self.drive_manual()
 
-        print(str(steering_output)+" "+str(throttle_output))
         # Record data
         if record_on:
-            print('record video')
+            self.stream_to_file.log_queue.put((self.stream_to_file.frame_index,
+                                               steering_output,
+                                               throttle_output))
+            self.stream_to_file.frame_index += 1
 
     def drive_manual(self):
         """
@@ -209,8 +222,8 @@ class EngineApp(App):
         self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
         return steering_output, throttle_output
 
-    def drive_autonomous(self):
-        print('driving autonomously')
+    # def drive_autonomous(self):
+    #     print('driving autonomously')
 
     def start_drive(self):
         """
@@ -345,11 +358,11 @@ class EngineAppGUI(GridLayout):
         """
           Object constructor method used to initiate the UI window.
 
-          This will instantiate the "root" Kivy property and the name used here MUST match exactly the Kivy
-          class name used in the engine.kv main file.
+          This will instantiate the "root" Kivy property and the name used here MUST
+          match exactly the Kivy class name used in the engine.kv main file.
 
-          Also pass as parameter the App object reference so that any App property or methods can
-          easily be accessed in this class directly if needed.
+          Also pass as parameter the App object reference so that any App property or
+          methods can easily be accessed in this class directly if needed.
         """
         # Instantiate the parent class
         GridLayout.__init__(self)
