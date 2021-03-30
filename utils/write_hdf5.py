@@ -4,7 +4,7 @@ import h5py
 import time
 import os
 
-from guiUtils import userPath
+from .guiUtils import userPath
 
 
 class StreamToHDF5(userPath):

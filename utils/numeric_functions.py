@@ -5,20 +5,56 @@ import time
 class GeneralUtils:
     def __init__(self):
         " Miscellaneous numeric utilities used in various parts of the code."
-        self.timerStart = 0
-        self.measTime = 0
-        self.mAvgBuffer = []
-        self.mAvgLength = 0
-        # Circular buffer properties
-        # self.circBuffer = []
-        # self.circBufLength = 0
-        # self.circIndex = 0
+        self.timer_start = 0
+        self.measure_time = 0
+        self.mean_avg_buffer = []
+        self.mean_avg_length = 0
+        self.circular_buffer_length = 0
+        self.circular_index = 0
 
     def initiate_time(self):
-        self.timerStart = time.time()
+        self.timer_start = time.time()
 
     def get_timer(self):
-        return time.time() - self.timerStart
+        return time.time() - self.timer_start
+
+    def create_circular_buffer(self, buffer_length: int, buffer_shape: list):
+        """
+            This method creates a circular buffer for RGB images, i.e., 3D data (width, height,
+          channels).  It can be use for the image sequencing for reccurent DNN architectures.
+          It uses a "main" buffer that is 2*bufSize and a slicing to get the correct values.
+
+        Parameters
+        ----------
+        buffer_length: (int) buffer length
+        buffer_shape: (list) shape of buffer
+        """
+        self.circBufLength = buffer_length
+        # Create a buffer
+        self.circBuffer = np.zeros((int(2 * self.circBufLength),
+                                    int(buffer_shape[0]),
+                                    int(buffer_shape[1]),
+                                    int(buffer_shape[2])), np.uint8)
+        self.circIndex = 0  # Make sure to reset the index
+
+    def get_buffer(self, newData):
+        """
+          This method adds the new data to the main circBuffer, then does the slicing to
+          return the desired sequence.  This acts as a RIGHT-to-LEFT FIFO buffe
+
+        Parameters
+        ----------
+        newData
+
+        Returns
+        -------
+
+        """
+        tmpIdx = (self.circular_index % self.circular_buffer_length)
+        self.circBuffer[tmpIdx, :, :, :] = newData
+        self.circBuffer[tmpIdx + self.circular_buffer_length, :, :, :] = newData
+        self.circular_index += 1
+        return self.circBuffer[tmpIdx + 1:tmpIdx + 1 + self.circular_buffer_length, :, :, :]
 
     @staticmethod
     def moving_avg(avg_buffer: np.array, new_value: float):

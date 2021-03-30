@@ -1,6 +1,5 @@
 import numpy as np
-# import os
-# import sys
+import tensorflow.keras as keras
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -17,7 +16,7 @@ from utils.pyArduino import Arduino
 
 # Camera related imports
 import pyrealsense2 as rs
-# import cv2
+
 
 # Servo Pin Numbers
 STEERING_SERVO = 9
@@ -51,6 +50,7 @@ class EngineApp(App):
         self.file_IO = None
         self.ui = None
         self.stream_to_file = None
+        self.model = None
         self.car_name = "miniAutonomous"
         self.functional_utils = GeneralUtils()
         self.camera_real_rate = 0
@@ -59,9 +59,15 @@ class EngineApp(App):
         self.board_available = False
         # Camera on?
         self.rs_is_on = False
+        # Are we recording?
+        self.record_on = False
+        # Net selected?
+        self.net_model_selected = False
         # Net loaded?
         self.net_loaded = False
-        # Is the car speaking to you in French?
+        # Log folder selected?
+        self.log_folder_selected = False
+        # Is the car speaking to you?
         # Just checking that you are reading the comments...
 
         # Set a variety of default values
@@ -178,11 +184,11 @@ class EngineApp(App):
         """
         record_on = self.arduino_board.recIn()
         if record_on < 1500:
-            record_on = True
+            self.record_on = True
         else:
-            record_on = False
+            self.record_on = False
 
-        # Drive the car yourself
+        # Drive the car
         if drive_mode == 'Manual':
             steering_output, throttle_output = self.drive_manual()
         # Have the car drive itself
@@ -191,11 +197,13 @@ class EngineApp(App):
             steering_output, throttle_output = self.drive_manual()
 
         # Record data
-        if record_on:
+        if self.record_on and self.log_folder_selected:
             self.stream_to_file.log_queue.put((self.stream_to_file.frame_index,
                                                steering_output,
                                                throttle_output))
             self.stream_to_file.frame_index += 1
+        # @TODO: Discuss with Francois, do we need to add an option for closing the log
+        # @TODO: if the user switches of recording?
 
     def drive_manual(self):
         """
@@ -222,9 +230,23 @@ class EngineApp(App):
         self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
         return steering_output, throttle_output
 
-    # def drive_autonomous(self):
-    #     print('driving autonomously')
+    def drive_autonomous(self):
+        """
+            Drive the vehicle by doing things autonomously.
 
+        Returns
+        -------
+        steering_output: (int) inference-based steering output
+        throttle_output: (int) inference-based throttle output
+        """
+        # ========================= There is only 1 model, i.e, regression ===========================#
+        # perform inference depending if it is recurrent or not
+        # if fnmatch.fnmatch(self.api.modelName[0], '*_?R*'):
+        #     # Need to add a dimension to the overall buffer and return the controls signals
+        #     return self.api.nnModel[0].predict(np.expand_dims(self.api.uiUtils.getBufferRL(newImage),
+        #                                                       axis=0))[0]
+        # else:
+        #     return self.api.nnModel[0].predict(np.expand_dims(newImage, axis=0))[0]
     def start_drive(self):
         """
             Turns the drive system on and off.
@@ -242,6 +264,10 @@ class EngineApp(App):
 
             # Arduino
             self.stop_arduino()
+
+            # Close the log file if you are recording
+            if self.record_on:
+                self.stream_to_file.close_log_file()
 
         # Turn things ON
         else:
@@ -273,11 +299,12 @@ class EngineApp(App):
                 Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
                 self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
 
-    def select_file(self):
+    def select_model_file(self):
         """
             Help the user select the model HDF5 or the directory to which to store data.
 
         """
+        # @TODO: Discuss this option spec with Francois -- shouldn't this be .hdf5?
         self.file_IO.fileType = [('text files', ('.txt', '.text')), ('all files', '.*')]
         self.file_IO.pathSelect(pathTag='EngineAppGUI')
         if self.file_IO.numPaths == 0:
@@ -286,8 +313,35 @@ class EngineApp(App):
         else:
             # The user selected an HDF5 file
             self.root.statusBar.lblStatusBar.text = ' File loaded !'
+            # @TODO is currentPaths[0] the correct path to the DNN?
             self.root.fileDiag.lblFilePath.text = self.file_IO.currentPaths[0]
             self.root.fileDiag.selectButton.text = 'Selected File'
+            self.net_model_selected = True
+
+            # Load the network model now that it has been selected
+            self.load_dnn()
+
+    def load_dnn(self):
+        """
+            Load the Keras DNN model
+
+        """
+        try:
+            self.model = keras.models.load_model(self.file_IO.currentPaths[0])
+            # Give the user a summary of the model loaded
+            self.model.summary()
+        except ValueError:
+            print('File is not compatible with Keras load.')
+
+    def select_log_folder(self):
+        """"
+            Select the folder to save log files to when creating training data.
+
+        """
+        self.stream_to_file.selUserDataFolder(self.stream_to_file.userDataFolder, 'select',
+                                              'miniCarData')
+        self.ui.loggingOpt.lblLogFolder.text = '  ' + self.stream_to_file.userDataFolder
+        self.log_folder_selected = True
 
     def run_camera(self):
         """
