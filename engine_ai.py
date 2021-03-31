@@ -7,6 +7,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.properties import ObjectProperty
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
+import cv2
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.guiUtils import userPath
@@ -48,12 +49,15 @@ class EngineApp(App):
         self.camera_buffer_fps = None
         self.arduino_board = None
         self.file_IO = None
-        self.ui = None
         self.stream_to_file = None
         self.model = None
+        self.image_buffer = None
         self.car_name = "miniAutonomous"
         self.functional_utils = GeneralUtils()
         self.camera_real_rate = 0
+        self.nn_image_width = 0
+        self.nn_image_height = 0
+        self.sequence_length = 0
 
         # Arduino connected?
         self.board_available = False
@@ -89,6 +93,11 @@ class EngineApp(App):
         self.color_depth = 3
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
+        # NN input parameters
+        self.nn_image_width = 640
+        self.nn_image_height = 480
+        # For RNNs, define the sequence length
+        self.sequence_length = 5
 
         # Creation of buffer arrays
         """
@@ -162,6 +171,13 @@ class EngineApp(App):
 
         # Run the camera
         self.run_camera()
+        """
+            Now that the camera is running, the image it produces is available
+            to all methods via 'self.ui.primary_image'.
+             
+            This indicates we are using the same image to record or run inference
+            on that the user sees from the UI.
+        """
 
         # Check the desired mode
         """
@@ -193,14 +209,14 @@ class EngineApp(App):
             steering_output, throttle_output = self.drive_manual()
         # Have the car drive itself
         else:
-            # @TODO: build this module out
-            steering_output, throttle_output = self.drive_manual()
+            steering_output, throttle_output = self.drive_autonomous()
 
         # Record data
         if self.record_on and self.log_folder_selected:
             self.stream_to_file.log_queue.put((self.stream_to_file.frame_index,
                                                steering_output,
-                                               throttle_output))
+                                               throttle_output,
+                                               self.ui.primary_image))
             self.stream_to_file.frame_index += 1
         # @TODO: Discuss with Francois, do we need to add an option for closing the log
         # @TODO: if the user switches of recording?
@@ -239,14 +255,18 @@ class EngineApp(App):
         steering_output: (int) inference-based steering output
         throttle_output: (int) inference-based throttle output
         """
-        # ========================= There is only 1 model, i.e, regression ===========================#
-        # perform inference depending if it is recurrent or not
-        # if fnmatch.fnmatch(self.api.modelName[0], '*_?R*'):
-        #     # Need to add a dimension to the overall buffer and return the controls signals
-        #     return self.api.nnModel[0].predict(np.expand_dims(self.api.uiUtils.getBufferRL(newImage),
-        #                                                       axis=0))[0]
-        # else:
-        #     return self.api.nnModel[0].predict(np.expand_dims(newImage, axis=0))[0]
+        # @TODO: Ask Francois about this bit of code (from xCar.py)
+        # Call the NN which will also do the image re-sizing
+        # NOTE: The multi images concatenation is done by evaluating a string
+        #       "self.nnImgConcat" that has the "np.concat" command.  That string was
+        #       built in the dnnCfgInputs method of this class based on the NN image
+        #       requirements from the configuration file
+        # tmpImg = cv2.resize(eval(self.nnImgConcat), (self.net.imgWidth, self.net.imgHeight))
+
+        input_tensor = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
+        inferred_steering, inferred_throttle = self.model.predict(input_tensor)
+        return inferred_steering, inferred_throttle
+
     def start_drive(self):
         """
             Turns the drive system on and off.
@@ -304,8 +324,8 @@ class EngineApp(App):
             Help the user select the model HDF5 or the directory to which to store data.
 
         """
-        # @TODO: Discuss this option spec with Francois -- shouldn't this be .h5?
-        self.file_IO.fileType = [('text files', ('.h5', '.text')), ('all files', '.*')]
+        # Filter for HDF5 model files
+        self.file_IO.fileType = [('hdf5 files', '.h5'), ('all files', '.*')]
         self.file_IO.pathSelect(pathTag='EngineAppGUI')
         if self.file_IO.numPaths == 0:
             # User cancelled the selection
@@ -333,6 +353,17 @@ class EngineApp(App):
             self.model = keras.models.load_model(self.file_IO.currentPaths[0])
             # Give the user a summary of the model loaded
             self.model.summary()
+            # Define the network input image dimensions from the model
+            self.nn_image_width = self.model.input_tensor[0]
+            self.nn_image_height = self.model.input_tensor[1]
+            self.sequence_length = self.model.input_tensor[2]
+            # Create circular buffer for RNN network feed
+            self.image_buffer = \
+                self.functional_utils.create_circular_buffer(self.sequence_length,
+                                                             (self.nn_image_height,
+                                                              self.nn_image_width,
+                                                              self.color_depth))
+
         except ValueError:
             print('File is not compatible with Keras load.')
 
@@ -355,11 +386,13 @@ class EngineApp(App):
         frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
         if not color_frame:
-            self.ui.rsIntelOn = False
+            self.rs_is_on = False
 
-        self.ui.image_main = np.asanyarray(color_frame.get_data())
-        # Process the image to display to the user
-        display_image = np.flipud(self.ui.image_main)
+        # Take the image and make it visible in the UI and accessible to all methods
+        self.ui.primary_image = np.asanyarray(color_frame.get_data())
+
+        # Process it for display
+        display_image = np.flipud(self.ui.primary_image)
         display_image = display_image[:, :, [2, 1, 0]]
         # Update the UI texture to display the image to the user
         self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
@@ -426,19 +459,16 @@ class EngineAppGUI(GridLayout):
 
         # Property to access the App properties easily
         self.app = main_app_ref
-        self.uiWindow = Window
-        self.uiWindow.borderless = False
+        self.ui_window = Window
+        self.ui_window.borderless = False
 
         # Display window for camera feed
-        self.imgMain = []
-        self.imgWidthFactor = 1
-        self.imgNumPixes = None
+        self.primary_image = []
+        self.image_width_factor = 1
 
         # Set VGA resolution for the camera output window
         self.image_width = 640
         self.image_height = 480
-        # Define if one or two images need to be displayed (i.e. using a stereo cam)
-        self.image_width_factor = 1
 
         # Steering PWM settings, (done here to display to the user)
         self.steering_neutral = 1452
@@ -451,21 +481,21 @@ class EngineAppGUI(GridLayout):
         self.throttle_max = 2500
 
         # Canvases default background to light blue
-        self.uiWindow.clear_color = ([.01, .2, .36, 1])
-        self.uiWindow.bind(on_request_close=self.ui_close_window)
+        self.ui_window.clear_color = ([.01, .2, .36, 1])
+        self.ui_window.bind(on_request_close=self.ui_close_window)
 
         # Window initialization based on last instance of app use
         win_tmp = self.app.file_IO.appsGetDflt('winTop')
         if win_tmp is not None:
-            self.uiWindow.top = win_tmp
+            self.ui_window.top = win_tmp
         win_tmp = self.app.file_IO.appsGetDflt('winLeft')
         if win_tmp is not None:
-            self.uiWindow.left = win_tmp
+            self.ui_window.left = win_tmp
         win_tmp = self.app.file_IO.appsGetDflt('winSize')
         if win_tmp is not None:
-            self.uiWindow.size = win_tmp
+            self.ui_window.size = win_tmp
         else:
-            self.uiWindow.size = (1000, 500)
+            self.ui_window.size = (1000, 500)
 
         # Create the original texture to display the image when the software is started.
         self.image_texture = Texture.create(size=(self.image_width * self.image_width_factor,
@@ -482,9 +512,9 @@ class EngineAppGUI(GridLayout):
         """
         # Save the current window position so that the next window re-opens at the same position and
         # size that the user last left it
-        self.app.file_IO.appCfg['winTop'] = self.uiWindow.top
-        self.app.file_IO.appCfg['winLeft'] = self.uiWindow.left
-        self.app.file_IO.appCfg['winSize'] = self.uiWindow.size
+        self.app.file_IO.appCfg['winTop'] = self.ui_window.top
+        self.app.file_IO.appCfg['winLeft'] = self.ui_window.left
+        self.app.file_IO.appCfg['winSize'] = self.ui_window.size
         self.app.file_IO.appsWriteDfltVal()
 
 

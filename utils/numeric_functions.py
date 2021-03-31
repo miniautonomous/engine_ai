@@ -18,7 +18,7 @@ class GeneralUtils:
     def get_timer(self):
         return time.time() - self.timer_start
 
-    def create_circular_buffer(self, buffer_length: int, buffer_shape: list):
+    def create_circular_buffer(self, buffer_length: int, buffer_shape: tuple):
         """
             This method creates a circular buffer for RGB images, i.e., 3D data (width, height,
           channels).  It can be use for the image sequencing for reccurent DNN architectures.
@@ -27,7 +27,7 @@ class GeneralUtils:
         Parameters
         ----------
         buffer_length: (int) buffer length
-        buffer_shape: (list) shape of buffer
+        buffer_shape: (tuple) shape of buffer
         """
         self.circBufLength = buffer_length
         # Create a buffer

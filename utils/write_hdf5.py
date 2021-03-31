@@ -84,7 +84,7 @@ class StreamToHDF5(userPath):
                 log_data = self.log_queue.get()
                 # Each frame of data is a separate group
                 current_frame = str(log_data[0]).zfill(6)
-                # Save every 1000 frames to a separate file
+                # Save every 20000 frames to a separate file
                 if not (log_data[0]%20000) == 0:
                     self.write_data(current_frame,  log_data)
                 # Create a new file
