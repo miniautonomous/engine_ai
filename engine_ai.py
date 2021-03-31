@@ -263,9 +263,22 @@ class EngineApp(App):
         #       requirements from the configuration file
         # tmpImg = cv2.resize(eval(self.nnImgConcat), (self.net.imgWidth, self.net.imgHeight))
 
-        input_tensor = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
+        # Resize the image
+        new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
+        # Add it to the circular buffer for RNN processing
+        input_tensor = np.expand_dims(self.functional_utils.get_buffer(new_image), axis=0)
+        # Do inference on the buffer of images
         inferred_steering, inferred_throttle = self.model.predict(input_tensor)
         return inferred_steering, inferred_throttle
+
+        # ========================= There is only 1 model, i.e, regression ===========================#
+        # perform inference depending if it is recurrent or not
+        # if fnmatch.fnmatch(self.api.modelName[0], '*_?R*'):
+        #     # Need to add a dimension to the overall buffer and return the controls signals
+        #     return self.api.nnModel[0].predict(np.expand_dims(self.api.uiUtils.getBufferRL(newImage),
+        #                                                       axis=0))[0]
+        # else:
+        #     return self.api.nnModel[0].predict(np.expand_dims(newImage, axis=0))[0]
 
     def start_drive(self):
         """
