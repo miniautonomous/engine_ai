@@ -304,8 +304,8 @@ class EngineApp(App):
             Help the user select the model HDF5 or the directory to which to store data.
 
         """
-        # @TODO: Discuss this option spec with Francois -- shouldn't this be .hdf5?
-        self.file_IO.fileType = [('text files', ('.txt', '.text')), ('all files', '.*')]
+        # @TODO: Discuss this option spec with Francois -- shouldn't this be .h5?
+        self.file_IO.fileType = [('text files', ('.h5', '.text')), ('all files', '.*')]
         self.file_IO.pathSelect(pathTag='EngineAppGUI')
         if self.file_IO.numPaths == 0:
             # User cancelled the selection
@@ -326,6 +326,9 @@ class EngineApp(App):
             Load the Keras DNN model
 
         """
+        # @TODO: figure out the input size of the image + sequence length
+        # @TODO: resize the input image to be of that dimension
+        # @TODO: create buffer here
         try:
             self.model = keras.models.load_model(self.file_IO.currentPaths[0])
             # Give the user a summary of the model loaded
