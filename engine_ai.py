@@ -339,7 +339,7 @@ class EngineApp(App):
         """
         # Filter for HDF5 model files
         self.file_IO.file_type = [('hdf5 files', '.h5'), ('all files', '.*')]
-        self.file_IO.pathSelect(pathTag='EngineAppGUI')
+        self.file_IO.path_select(path_tag='EngineAppGUI')
         if self.file_IO.num_paths == 0:
             # User cancelled the selection
             self.root.statusBar.lblStatusBar.text = ' User cancelled selection'

@@ -4,7 +4,6 @@ import json
 import glob
 import tkinter
 import tkinter.filedialog as file_dialog
-import tkinter.messagebox as messagebox
 from tkfilebrowser import askopendirnames as multi_directories
 
 
@@ -65,11 +64,11 @@ class UserPath(object):
             # @TODO: Removed the windows option here
             self.app_config_file += '_lnx.cfg'
 
-             # 2. Actually create the 'App' configuration file if needed
+            # 2. Actually create the 'App' configuration file if needed
             if not os.path.isfile(self.app_config_file):
                 # Initialize the dictionary key associated with the default path
-                self.app_config['defaultPath'] = os.path.expanduser('~')
-                self.app_config['cfgFilePath'] = self.app_config_file
+                self.app_config['default_path'] = os.path.expanduser('~')
+                self.app_config['cfg_file_path'] = self.app_config_file
                 # Save the dictionary to init file.
                 with open(self.app_config_file, 'w') as tmpFile:
                     json.dump(self.app_config, tmpFile)
@@ -89,7 +88,7 @@ class UserPath(object):
         """
         self.historical_paths[key_name] = self.current_paths
 
-    def apps_get_default(self, key_name:str):
+    def apps_get_default(self, key_name: str):
         """
           Returns a dictionary entry if it exists.
 
@@ -114,49 +113,6 @@ class UserPath(object):
         if self.app_module is not None:
             with open(self.app_config_file, 'w') as tmp_file:
                 json.dump(self.app_config, tmp_file, sort_keys=True)
-
-    @staticmethod
-    def read_dictionary(dictionary_path):
-        """
-          Read the path to where the a config dictionary is stored.
-
-        Parameters
-        ----------
-        dictionary_path: (str) path that leads to a previosly written config.
-
-        Returns
-        -------
-        app_config: (dict) the stored config dictionary
-        """
-        if os.path.isfile(dictionary_path):
-            # Simply read the file if it exist and return its content
-            with open(dictionary_path) as tmpFile:
-                return json.load(tmpFile)
-
-    @staticmethod
-    def file_paths_list(folder_list: list, file_type: str= '*.*') -> list:
-        # @TODO: Discuss this with Francois
-        """
-            This method will retrieves the full path of all the files that matches the file type for all
-            the folder listed.
-
-        Parameters
-        ----------
-        folder_list: (list) lists all folders available with given file type
-        file_type: (str) file type being searched for by user
-
-        Returns
-        -------
-        list_paths: (list) current list of paths for given file type
-        """
-        list_paths = []
-        for item in range(len(folder_list)):
-            tmp = glob.glob(folder_list[item] + '/' + file_type)
-            if len(tmp) == 0:
-                print('No matching file found in => ' + folder_list[item])
-            else:
-                list_paths.extend(tmp)
-        return sorted(list_paths)
 
     def select_user_data_folder(self, folder_path: str, action: str='validate', path_tag: str='default_path'):
         """
@@ -186,7 +142,7 @@ class UserPath(object):
         # Confirm a folder is available, if not query the user to confirm which folder to use
         elif action.lower() == 'confirm':
             if  not os.path.isdir(folder_path):
-                self.pathSelect(path_tag, 'dirSelect')
+                self.path_select(path_tag, 'dirSelect')
                 if self.num_paths is not 0:
                     self.user_data_folder = self.current_paths[0]
                 else:
@@ -196,146 +152,173 @@ class UserPath(object):
 
         # Open the file dialog (which will save the path in the object property).
         elif action.lower() == 'select':
-            self.pathSelect(path_tag, 'dirSelect')
+            self.path_select(path_tag, 'dirSelect')
             if self.num_paths is not 0:
                 self.user_data_folder = self.current_paths[0]
             else:
-                self.user_data_folder = os.path.expanduser('~') # Return the user home folder
+                # Return the user home folder
+                self.user_data_folder = os.path.expanduser('~')
 
         # Unsupported action
         else:
             self.user_data_folder = None
-            raise ValueError('Unsupported "action" input ', \
-                   'method: select_user_data_folder ', \
-                   'class: UserPath')
+            raise ValueError('Unsupported "action" input ',
+                             'method: select_user_data_folder ',
+                             'class: UserPath')
 
+    def path_select(self, path_tag: str= 'default_path', path_type: str= 'file_read'):
+        """
+            Method that uses the input parameter path_tag as a dictionary key so that previously
+            selected path from an given application can be re-used. Typically, the calling
+            application "label" is used for this string so it is easy to recall.
 
-  def pathSelect(self, pathTag='defaultPath', pathType='fileRead'):
-    """
-    Method that uses the input parameter pathTag as a dictionary key so that previously
-    selected path from an given application be re-used. Typically, the calling
-    application "label" is used for this string so it is easy to recall.
-    
-    Keyword Arguments:
-      pathTag {str} -- Can be any string, e.g. application name. 
-                       (default: {'defaultPath'})
-      pathType {str} -- String use to customize the file dialog option. The following
-                        types are currently supported;
-                          1) 'fileRead'
-                          2) 'fileWrite'
-                          3) 'dirSelect'
-                        (default: {'fileRead'})
-    Raises:
-      ValueError -- [None]
-    """
+        Parameters
+        ----------
+        path_tag: (str) label for the defined path
+        path_type: (str) what is the operation of the file path
+                Currently supports: 1) 'file_read'
+                                    2) 'file_write'
+                                    3) 'dir_select'
+        """
+        if path_tag in self.app_config.keys():
+            init_dir = self.app_config[path_tag]
+        else:
+            init_dir = self.app_config['default_path']
 
-    if pathTag in self.app_config.keys():
-      initDir = self.app_config[pathTag]
-    else:
-      initDir = self.app_config['defaultPath']
+        # Need to ensure initDir is a valid directory in case it has been
+        # rename or delete or move.
+        self.select_user_data_folder(init_dir)
+        init_dir = self.user_data_folder
+        diag_options = {'title': self.file_prompt, 'initialdir': init_dir}
+        window = tkinter.Tk()
+        window.wm_withdraw()
 
-    # Need to ensure initDir is a valid directory in case it has been
-    # rename or delete or move.
-    self.select_user_data_folder(initDir)
-    initDir = self.user_data_folder
+        if path_type.lower() == 'file_read':
+            diag_options['filetypes'] = self.file_type
+            if self.file_multi_select:
+                self.current_paths = file_dialog.askopenfilenames(**diag_options)
+                # save the current path in a list to be consistent/compatible
+                self.current_paths = list(self.current_paths)
+            else:
+                # save the single path in a list directly to be consistent/compatible
+                self.current_paths = [file_dialog.askopenfilename(**diag_options)]
 
-    diagOptions={} # Make sure we start with an empty dictionary
-    diagOptions['title'] = self.file_prompt
-    diagOptions['initialdir'] = initDir
+        elif path_type.lower() == 'file_write':
+            diag_options['filetypes'] = self.file_type
+            # save the single path in a list directly to be consistent/compatible
+            self.current_paths = [file_dialog.asksaveasfilename(**diag_options)]
 
-    window = tkinter.Tk()
-    window.wm_withdraw()
-    #window.call('wm', 'attributes', '.', '-topmost', True)
-    #window.lift()
+        elif path_type.lower() == 'dir_select':
+            # save the single path in a list directly to be consistent/compatible
+            if self.file_multi_select:
+                self.current_paths = multi_directories(**diag_options)
+            else:
+                self.current_paths = [file_dialog.askdirectory(**diag_options)]
 
+        else:
+            raise ValueError('Unsupported pathType input ',
+                             'method: path_select',
+                             'class: UserPath')
 
-    if pathType.lower() == 'fileread':
-      diagOptions['filetypes'] = self.file_type
-      if self.file_multi_select:
-        self.current_paths = file_dialog.askopenfilenames(**diagOptions)
-        # save the current path in a list to be consistent/compatible
-        self.current_paths = list(self.current_paths)
-      else:
-        # save the single path in a list directly to be consistent/compatible
-        self.current_paths = [file_dialog.askopenfilename(**diagOptions)]
+        # Check the user did NOT cancel and update the dictionary and init file
+        if any(map(len, self.current_paths)):
+            self.num_paths = len(self.current_paths)
+            # Find the base path of the file so it can be saved in the init file
+            if path_type.lower() == 'dir_select':
+                self.app_config[path_tag] = self.current_paths[0]
+            else:
+                # For file, remove the file name
+                self.app_config[path_tag] = os.path.dirname(self.current_paths[0])
 
-    elif pathType.lower() == 'filewrite':
-      diagOptions['filetypes'] = self.file_type
-      # save the single path in a list directly to be consistent/compatible
-      self.current_paths = [file_dialog.asksaveasfilename(**diagOptions)]
+        else:
+            # User cancelled, simply default the numPath property
+            self.num_paths = 0
 
-    elif pathType.lower() == 'dirselect':
-      # save the single path in a list directly to be consistent/compatible
-      if self.file_multi_select:
-        self.current_paths = multi_directories(**diagOptions)
-      else:
-        self.current_paths = [file_dialog.askdirectory(**diagOptions)]
-    else:
-      raise ValueError('Unsupported pathType input ', \
-                       'method: pathSelect', \
-                       ' class: userPath')
-    # Make sure the user did NOT cancel and update the dictionary and
-    # initialization file accordingly
-    if any(map(len, self.current_paths)):  # The user did NOT cancel,
-                                          # so update accordingly
-      self.num_paths = len(self.current_paths)
+    def file_paths_list(self, folder_list: list, file_type: str= '*.*'):
+        """
+            Retrieves the full path of all the files that matches the
+            file type.  The full file paths for all the files are saved
+            in the "current_paths" property of this class
 
-      # find the base path of the file so it can be saved in the init file
-      if pathType.lower() == 'dirselect': # For folder, keep the complete path
-        self.app_config[pathTag] = self.current_paths[0]
-      else: # For file, remove the file name
-        self.app_config[pathTag] = os.path.dirname(self.current_paths[0])
+        Parameters
+        ----------
+        folder_list: (list) list of files selected
+        file_type: (str) file type of selected files
+        """
+        self.current_paths = []
+        for item in range(len(folder_list)):
+            tmp = glob.glob(folder_list[item] + '/' + file_type)
+            if len(tmp) == 0:
+                print('No matching file found in => ' + folder_list[item])
+            else:
+                self.current_paths.extend(tmp)
 
-    else: # User cancelled, simply default the numPath property
-      self.num_paths = 0
+        # Sort the list
+        self.current_paths.sort()
+        # Update the associated property
+        self.num_paths = len(self.current_paths)
 
-  def filePathsList(self, folderList, fileType='*.*'):
-    """
-      This method will retrieves the full path of all the files that matches the
-      file type for all the folder listed.
+    def folders_list(self, base_path: str):
+        """
+            This method will retrieves the full path of all the folders located in the
+            base_path.
 
-      folderList => List of all the folder that will be query
-      fileType => Desired file type
+            The full sub-folder paths for all the folders are saved in the "current_paths"
+            property of this class
 
-      The full file paths for all the files are saved in the "currentPaths"
-      property of this class
-    """
-    # Make sure the current property is empty
-    self.current_paths = []
-    for item in range(len(folderList)):
-      tmp = glob.glob(folderList[item] + '/' + fileType)
-      if len(tmp) == 0: # make sure the list is NOT empty
-        print('No matching file found in => ' + folderList[item])
-      else:
-        self.current_paths.extend(tmp)
+        Parameters
+        ----------
+        base_path: (str) base pass string of directories
+        """
+        if not base_path.endswith('/'):
+            base_path = base_path + '/'
+        self.current_paths = glob.glob(base_path + '*/')
+        self.current_paths.sort()
 
-    # Finally sort the list
-    self.current_paths.sort()
-    # Update the associated property
-    self.num_paths = len(self.current_paths)
+        # Save the path structure
+        self.num_paths = len(self.current_paths)
+        for iItem, pItem in enumerate(self.current_paths):
+            self.current_paths[iItem] = os.path.normpath(pItem)
 
+    @staticmethod
+    def read_dictionary(dictionary_path):
+        """
+          Read the path to where the a config dictionary is stored.
 
-  def foldersList(self, basePath):
-    """
-      This method will retrieves the full path of all the folders located in the
-      basePath.
+        Parameters
+        ----------
+        dictionary_path: (str) path that leads to a previosly written config.
 
-      basePath => a path string the ENDS WITH a '/'
+        Returns
+        -------
+        app_config: (dict) the stored config dictionary
+        """
+        if os.path.isfile(dictionary_path):
+            # Simply read the file if it exist and return its content
+            with open(dictionary_path) as tmpFile:
+                return json.load(tmpFile)
 
-      The full sub-folder paths for all the folders are saved in the "currentPaths"
-      property of this class
-    """
-    # Make sure the current property is empty
-    # print(basePath)
-    # print(type(basePath))
-    if not basePath.endswith('/'):
-      basePath = basePath + '/'
-    self.current_paths = glob.glob(basePath + '*/')
+    # @TODO: Discuss this with Francois
+    @staticmethod
+    def file_paths_list_2(folder_list: list, file_type: str= '*.*') -> list:
+        """
+            This method will retrieves the full path of all the files that matches the file type for all
+            the folder listed.
 
-    # Finally sort the list
-    self.current_paths.sort()
-    # Update the associated property
-    self.num_paths = len(self.current_paths)
-    # Finally, make sure that they are properly build path string
-    for iItem, pItem in enumerate(self.current_paths):
-      self.current_paths[iItem] = os.path.normpath(pItem)
+        Parameters
+        ----------
+        folder_list: (list) lists all folders available with given file type
+        file_type: (str) file type being searched for by user
+
+        Returns
+        -------
+        list_paths: (list) current list of paths for given file type
+        """
+        list_paths = []
+        for item in range(len(folder_list)):
+            tmp = glob.glob(folder_list[item] + '/' + file_type)
+            if len(tmp) == 0:
+                print('No matching file found in => ' + folder_list[item])
+            else:
+                list_paths.extend(tmp)
+        return sorted(list_paths)
