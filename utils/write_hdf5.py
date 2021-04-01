@@ -4,10 +4,10 @@ import h5py
 import time
 import os
 
-from .guiUtils import userPath
+from .folder_functions import UserPath
 
 
-class StreamToHDF5(userPath):
+class StreamToHDF5(UserPath):
     def __init__(self,
                  image_width: int,
                  image_height: int,
@@ -31,9 +31,9 @@ class StreamToHDF5(userPath):
         file_version_number: (float) version of the file format
         f_name_suffix: (str) suffix of file name
         """
-        userPath.__init__(self, 'miniCar.py')
+        UserPath.__init__(self, 'miniCar.py')
         # Make sure to have a valid value
-        self.selUserDataFolder('', 'validate')
+        self.select_user_data_folder('', 'validate')
 
         # Set image dimensions for class usage
         self.image_width = image_width
@@ -106,8 +106,8 @@ class StreamToHDF5(userPath):
         date = time.strftime('%y%m%d')
         clock = time.strftime('%H%M%S')
         descriptor = '_miniCar'
-        file_path = os.path.join(self.userDataFolder, date + '_' + clock + descriptor + \
-                            self.fNameSuffix + '.hdf5')
+        file_path = os.path.join(self.user_data_folder, date + '_' + clock + descriptor + \
+                                 self.fNameSuffix + '.hdf5')
         # Open up an HDF5 to store data
         self.log_file = h5py.File(file_path, 'w')
         # Set storage attributes

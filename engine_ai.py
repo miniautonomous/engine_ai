@@ -10,9 +10,9 @@ from kivy.graphics.texture import Texture
 import cv2
 
 # Custom module for miscellaneous utility classes to support a GUI.
-from utils.guiUtils import userPath
+from utils.folder_functions import UserPath
 from utils.write_hdf5 import StreamToHDF5
-from utils.numeric_functions import GeneralUtils
+from utils.data_functions import GeneralUtils
 from utils.pyArduino import Arduino
 
 # Camera related imports
@@ -141,7 +141,7 @@ class EngineApp(App):
         """
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
-        self.file_IO = userPath('EngineApp.py')
+        self.file_IO = UserPath('EngineApp.py')
         self.ui = EngineAppGUI(self)
 
         # Stream file object to record data
@@ -338,17 +338,17 @@ class EngineApp(App):
 
         """
         # Filter for HDF5 model files
-        self.file_IO.fileType = [('hdf5 files', '.h5'), ('all files', '.*')]
+        self.file_IO.file_type = [('hdf5 files', '.h5'), ('all files', '.*')]
         self.file_IO.pathSelect(pathTag='EngineAppGUI')
-        if self.file_IO.numPaths == 0:
+        if self.file_IO.num_paths == 0:
             # User cancelled the selection
             self.root.statusBar.lblStatusBar.text = ' User cancelled selection'
         else:
             # The user selected an HDF5 file
             self.root.statusBar.lblStatusBar.text = ' File loaded !'
             # @TODO is currentPaths[0] the correct path to the DNN?
-            self.root.fileDiag.lblFilePath.text = self.file_IO.currentPaths[0]
-            self.root.fileDiag.selectButton.text = 'Selected File'
+            self.root.file_dialog.lblFilePath.text = self.file_IO.current_paths[0]
+            self.root.file_dialog.selectButton.text = 'Selected File'
             self.net_model_selected = True
 
             # Load the network model now that it has been selected
@@ -363,7 +363,7 @@ class EngineApp(App):
         # @TODO: resize the input image to be of that dimension
         # @TODO: create buffer here
         try:
-            self.model = keras.models.load_model(self.file_IO.currentPaths[0])
+            self.model = keras.models.load_model(self.file_IO.current_paths[0])
             # Give the user a summary of the model loaded
             self.model.summary()
             # Define the network input image dimensions from the model
@@ -385,9 +385,9 @@ class EngineApp(App):
             Select the folder to save log files to when creating training data.
 
         """
-        self.stream_to_file.selUserDataFolder(self.stream_to_file.userDataFolder, 'select',
+        self.stream_to_file.select_user_data_folder(self.stream_to_file.user_data_folder, 'select',
                                               'miniCarData')
-        self.ui.loggingOpt.lblLogFolder.text = '  ' + self.stream_to_file.userDataFolder
+        self.ui.loggingOpt.lblLogFolder.text = '  ' + self.stream_to_file.user_data_folder
         self.log_folder_selected = True
 
     def run_camera(self):
@@ -498,13 +498,13 @@ class EngineAppGUI(GridLayout):
         self.ui_window.bind(on_request_close=self.ui_close_window)
 
         # Window initialization based on last instance of app use
-        win_tmp = self.app.file_IO.appsGetDflt('winTop')
+        win_tmp = self.app.file_IO.apps_get_default('winTop')
         if win_tmp is not None:
             self.ui_window.top = win_tmp
-        win_tmp = self.app.file_IO.appsGetDflt('winLeft')
+        win_tmp = self.app.file_IO.apps_get_default('winLeft')
         if win_tmp is not None:
             self.ui_window.left = win_tmp
-        win_tmp = self.app.file_IO.appsGetDflt('winSize')
+        win_tmp = self.app.file_IO.apps_get_default('winSize')
         if win_tmp is not None:
             self.ui_window.size = win_tmp
         else:
@@ -525,10 +525,10 @@ class EngineAppGUI(GridLayout):
         """
         # Save the current window position so that the next window re-opens at the same position and
         # size that the user last left it
-        self.app.file_IO.appCfg['winTop'] = self.ui_window.top
-        self.app.file_IO.appCfg['winLeft'] = self.ui_window.left
-        self.app.file_IO.appCfg['winSize'] = self.ui_window.size
-        self.app.file_IO.appsWriteDfltVal()
+        self.app.file_IO.app_config['winTop'] = self.ui_window.top
+        self.app.file_IO.app_config['winLeft'] = self.ui_window.left
+        self.app.file_IO.app_config['winSize'] = self.ui_window.size
+        self.app.file_IO.write_default_value()
 
 
 if __name__ == "__main__":
