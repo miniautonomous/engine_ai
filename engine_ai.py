@@ -191,6 +191,8 @@ class EngineApp(App):
             drive_mode = 'Autonomous'
 
         # Are we recording?
+        # @TODO: Discuss with Francois how to hook this up to PWM read-out
+        # uiMsg += f', Throttle = {throttleOut:.0f}, NN inference (FPS) = {1 / self.dtNN:.0f}'
         """
             NOTE: Here we are using a four channel transmitter/receiver,
             so the option to record from the camera has been separated from
@@ -256,29 +258,15 @@ class EngineApp(App):
         throttle_output: (int) inference-based throttle output
         """
         # @TODO: Ask Francois about this bit of code (from xCar.py)
-        # Call the NN which will also do the image re-sizing
-        # NOTE: The multi images concatenation is done by evaluating a string
-        #       "self.nnImgConcat" that has the "np.concat" command.  That string was
-        #       built in the dnnCfgInputs method of this class based on the NN image
-        #       requirements from the configuration file
-        # tmpImg = cv2.resize(eval(self.nnImgConcat), (self.net.imgWidth, self.net.imgHeight))
-
-        # Resize the image
+        # Resize the image to be compatible with neural network
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
+
         # Add it to the circular buffer for RNN processing
         input_tensor = np.expand_dims(self.functional_utils.get_buffer(new_image), axis=0)
+
         # Do inference on the buffer of images
         inferred_steering, inferred_throttle = self.model.predict(input_tensor)
         return inferred_steering, inferred_throttle
-
-        # ========================= There is only 1 model, i.e, regression ===========================#
-        # perform inference depending if it is recurrent or not
-        # if fnmatch.fnmatch(self.api.modelName[0], '*_?R*'):
-        #     # Need to add a dimension to the overall buffer and return the controls signals
-        #     return self.api.nnModel[0].predict(np.expand_dims(self.api.uiUtils.getBufferRL(newImage),
-        #                                                       axis=0))[0]
-        # else:
-        #     return self.api.nnModel[0].predict(np.expand_dims(newImage, axis=0))[0]
 
     def start_drive(self):
         """
@@ -359,17 +347,15 @@ class EngineApp(App):
             Load the Keras DNN model
 
         """
-        # @TODO: figure out the input size of the image + sequence length
-        # @TODO: resize the input image to be of that dimension
-        # @TODO: create buffer here
         try:
             self.model = keras.models.load_model(self.file_IO.current_paths[0])
-            # Give the user a summary of the model loaded
             self.model.summary()
-            # Define the network input image dimensions from the model
-            self.nn_image_width = self.model.input_tensor[0]
-            self.nn_image_height = self.model.input_tensor[1]
-            self.sequence_length = self.model.input_tensor[2]
+
+            # Define the network input image dimensions from the model's input tensor
+            self.sequence_length= self.model.input.shape[1]
+            self.nn_image_height = self.model.input_tensor[2]
+            self.nn_image_width = self.model.input_tensor[3]
+
             # Create circular buffer for RNN network feed
             self.image_buffer = \
                 self.functional_utils.create_circular_buffer(self.sequence_length,
@@ -378,7 +364,7 @@ class EngineApp(App):
                                                               self.color_depth))
 
         except ValueError:
-            print('File is not compatible with Keras load.')
+            print('Selected file is not compatible with Keras load.')
 
     def select_log_folder(self):
         """"

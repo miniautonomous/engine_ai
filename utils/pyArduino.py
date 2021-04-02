@@ -391,4 +391,3 @@ class SoftwareSerial(object):
                 return response
         else:
             return False
-
