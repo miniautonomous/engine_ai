@@ -142,7 +142,7 @@ class EngineApp(App):
         self.title = 'EngineAppGUI (ver0.0r210303)'
         self.icon = 'img/logoTitleBarV2_32x32.png'
         self.file_IO = UserPath('EngineApp.py')
-        self.ui = EngineAppGUI(self)
+        self.ui = EngineAppGUI(self)                                                                                    # noqa
 
         # Stream file object to record data
         self.stream_to_file = StreamToHDF5(self.ui.image_width,
@@ -386,7 +386,7 @@ class EngineApp(App):
 
         """
         self.stream_to_file.select_user_data_folder(self.stream_to_file.user_data_folder, 'select',
-                                              'miniCarData')
+                                                    'miniCarData')
         self.ui.loggingOpt.lblLogFolder.text = '  ' + self.stream_to_file.user_data_folder
         self.log_folder_selected = True
 
