@@ -12,7 +12,7 @@ import cv2
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.folder_functions import UserPath
 from utils.write_hdf5 import StreamToHDF5
-from utils.data_functions import GeneralUtils
+from utils.data_functions import FolderUtils
 from utils.pyArduino import Arduino
 
 # Camera related imports
@@ -53,7 +53,7 @@ class EngineApp(App):
         self.model = None
         self.image_buffer = None
         self.car_name = "miniAutonomous"
-        self.functional_utils = GeneralUtils()
+        self.functional_utils = FolderUtils()
         self.camera_real_rate = 0
         self.nn_image_width = 0
         self.nn_image_height = 0

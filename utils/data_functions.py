@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 
-class GeneralUtils:
+class FolderUtils:
     def __init__(self):
         " Miscellaneous numeric utilities used in various parts of the code."
         self.timer_start = 0
