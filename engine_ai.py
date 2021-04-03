@@ -13,11 +13,10 @@ import cv2
 from utils.folder_functions import UserPath
 from utils.write_hdf5 import StreamToHDF5
 from utils.data_functions import FolderUtils
-from utils.pyArduino import Arduino
+from arduino.pyArduino import Arduino
 
 # Camera related imports
 import pyrealsense2 as rs
-
 
 # Servo Pin Numbers
 STEERING_SERVO = 9
@@ -31,6 +30,12 @@ Builder.load_file('kvSubPanels/powercontrols.kv')
 Builder.load_file('kvSubPanels/filediag.kv')
 Builder.load_file('kvSubPanels/statusbar.kv')
 
+"""
+    Todo List:
+    1) Figure out the message to the display part.
+    2) Stream_to_File initiation correction.
+
+"""
 
 class EngineApp(App):
     def __init__(self):
