@@ -71,6 +71,8 @@ class EngineApp(App):
         self.net_loaded = False
         # Log folder selected?
         self.log_folder_selected = False
+        # Was the car previously recording data
+        self.previously_recording = False
         # Is the car speaking to you?
         # Just checking that you are reading the comments...
 
@@ -82,7 +84,7 @@ class EngineApp(App):
 
     def _set_defaults(self):
         """
-            Set default values for various parameters.
+            Set default values for various numeric parameters.
 
         """
         # Set camera related defaults
@@ -220,8 +222,12 @@ class EngineApp(App):
                                                throttle_output,
                                                self.ui.primary_image))
             self.stream_to_file.frame_index += 1
-        # @TODO: Discuss with Francois, do we need to add an option for closing the log
-        # @TODO: if the user switches of recording?
+            # The vehicle is now recording
+            self.previously_recording = True
+        elif not self.record_on and self.previously_recording is True:
+            # Close a file stream if one was open and the user requested it be closed
+            self.stream_to_file.close_log_file()
+            self.previously_recording = False
 
     def drive_manual(self):
         """

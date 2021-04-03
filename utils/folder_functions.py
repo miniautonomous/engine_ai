@@ -59,7 +59,6 @@ class UserPath(object):
             # 1. Figure out the complete module path
             self.app_config_file = os.path.abspath(self.app_module)
             self.app_config_file, _ = os.path.splitext(self.app_config_file)
-            # @TODO: Ask Francois about this line of code
             # self.app_folder, _ = os.path.split(self.app_config_file)
             self.app_config_file += '_lnx.cfg'
 
