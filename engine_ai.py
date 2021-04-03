@@ -352,9 +352,9 @@ class EngineApp(App):
             self.model.summary()
 
             # Define the network input image dimensions from the model's input tensor
-            self.sequence_length= self.model.input.shape[1]
-            self.nn_image_height = self.model.input_tensor[2]
-            self.nn_image_width = self.model.input_tensor[3]
+            self.sequence_length = self.model.input.shape[1]
+            self.nn_image_height = self.model.input.shape[2]
+            self.nn_image_width = self.model.input.shape[3]
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \

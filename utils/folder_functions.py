@@ -60,8 +60,7 @@ class UserPath(object):
             self.app_config_file = os.path.abspath(self.app_module)
             self.app_config_file, _ = os.path.splitext(self.app_config_file)
             # @TODO: Ask Francois about this line of code
-            self.app_folder, _ = os.path.split(self.app_config_file)
-            # @TODO: Removed the windows option here
+            # self.app_folder, _ = os.path.split(self.app_config_file)
             self.app_config_file += '_lnx.cfg'
 
             # 2. Actually create the 'App' configuration file if needed
