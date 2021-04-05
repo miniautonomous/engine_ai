@@ -63,6 +63,10 @@ class StreamToHDF5(UserPath):
         # Create a queue for storing images and driver input
         self.log_queue = queue.Queue()
 
+    def initiate_stream(self):
+        """
+            Initiate a thread to stream data to a file.
+        """
         # Create a thread to do actual writing
         self.thread_running = True
         self.thread_write = threading.Thread(name='WriteHDF5',

@@ -33,9 +33,9 @@ Builder.load_file('kvSubPanels/statusbar.kv')
 """
     Todo List:
     1) Figure out the message to the display part.
-    2) Stream_to_File initiation correction.
 
 """
+
 
 class EngineApp(App):
     def __init__(self):
@@ -176,8 +176,14 @@ class EngineApp(App):
         self.drive_loop_buffer_fps, fp_avg =\
             self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
 
+        # Create a message stream to inform the user of current status/performance
+        ui_messages = f'Drive Loop (fps): {fp_avg:3.0f}'
+
         # Run the camera
         self.run_camera()
+
+        # Display camera fps
+        ui_messages += f', Camera (fps): {self.camera_real_rate:3.0f}'
         """
             Now that the camera is running, the image it produces is available
             to all methods via 'self.ui.primary_image'.
@@ -190,16 +196,16 @@ class EngineApp(App):
         """
             We are using the four channel options (TQi4ch)
         """
-        mode_in = self.arduino_board.modeIn()
+        mode_pwm = self.arduino_board.modeIn()
         # Set the vehicle to manual or autonomous
-        if mode_in < 1500:
+        if mode_pwm < 1500:
             drive_mode = 'Manual'
         else:
             drive_mode = 'Autonomous'
+        # Display mode
+        ui_messages += f', Mode: {drive_mode}={mode_pwm:d}'
 
         # Are we recording?
-        # @TODO: Discuss with Francois how to hook this up to PWM read-out
-        # uiMsg += f', Throttle = {throttleOut:.0f}, NN inference (FPS) = {1 / self.dtNN:.0f}'
         """
             NOTE: Here we are using a four channel transmitter/receiver,
             so the option to record from the camera has been separated from
@@ -207,11 +213,13 @@ class EngineApp(App):
             data, (manual driving), or you can record to show the vehicle
             driving itself from the perspective of the vehicle.
         """
-        record_on = self.arduino_board.recIn()
-        if record_on < 1500:
+        record_pwm = self.arduino_board.recIn()
+        if record_pwm < 1500:
             self.record_on = True
         else:
             self.record_on = False
+        # Display record option
+        ui_messages += f', Record Mode: {self.record_on}={record_pwm:d}'
 
         # Drive the car
         if drive_mode == 'Manual':
@@ -219,6 +227,8 @@ class EngineApp(App):
         # Have the car drive itself
         else:
             steering_output, throttle_output = self.drive_autonomous()
+        # Display steering and throttle
+        ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
 
         # Record data
         if self.record_on and self.log_folder_selected:
@@ -233,6 +243,14 @@ class EngineApp(App):
             # Close a file stream if one was open and the user requested it be closed
             self.stream_to_file.close_log_file()
             self.previously_recording = False
+
+        # @TODO: Discuss with Francois why xCar uses self.ui, where here we seem to need to use self.root
+        # From xCar.py:
+        # Last step, update the user.
+        # self.ui.statusMsg.lblStatusMsg.text = tmpMsg
+
+        # Send the message stream to the UI
+        self.root.statusBar.lblStatusBar.text = ui_messages
 
     def drive_manual(self):
         """
@@ -285,6 +303,7 @@ class EngineApp(App):
         """
         # Turn things OFF
         if self.root.powerCtrls.power.text == '[color=00ff00]Power ON[/color]':
+            # Set scheduling
             Clock.unschedule(self.drive_loop)
             self.root.powerCtrls.power.text = 'Power OFF'
 
@@ -303,13 +322,14 @@ class EngineApp(App):
 
         # Turn things ON
         else:
-            # Start the camera
+            # Camera
             self.rs_config.enable_stream(rs.stream.color,
                                          self.ui.image_width,
                                          self.ui.image_height,
                                          rs.format.bgr8, int(self.rs_frame_rate))
             self.rs_pipeline.start(self.rs_config)
-            # Test it by trying to get an image
+
+            # Get initial frame and confirm result
             frames = self.rs_pipeline.wait_for_frames()
             color_frame = frames.get_color_frame()
             if not color_frame:
@@ -320,6 +340,9 @@ class EngineApp(App):
             # Start the Arduino
             if not self.board_available:
                 self.start_arduino()
+
+            # Initiate a thread for writing to the a data file
+            self.stream_to_file.initiate_stream()
 
             """
                 NOTE: This is the call that kicks of the primary drive loop
@@ -442,7 +465,6 @@ class EngineApp(App):
                                              max=self.ui.throttle_max)
 
     def stop_arduino(self):
-        # TODO: Discuss if there is a need to setup an arduino disconnect with Francois
         if self.board_available:
             self.arduino_board.Servos.detach(STEERING_SERVO)
             self.arduino_board.Servos.detach(THROTTLE_SERVO)
