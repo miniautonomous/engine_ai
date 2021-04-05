@@ -345,9 +345,9 @@ class EngineApp(App):
             self.stream_to_file.initiate_stream()
 
             """
-                NOTE: This is the call that kicks of the primary drive loop
-                and schedules it at a desired, (user wants), but not actual,
-                (what user actually gets), frequency.
+                NOTE: This is the call that kicks off the primary drive loop
+                and schedules it at a desired (what user wants) but not actual
+                (what user gets) frequency.
             """
             # Schedule and start the drive loop
             if self.rs_is_on and self.board_available:
