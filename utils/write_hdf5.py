@@ -58,6 +58,9 @@ class StreamToHDF5(UserPath):
         # Log file
         self.log_file = None
 
+        # Do we have a thread actively running
+        self.thread_running = False
+
         # Frame indexing within queue
         self.frame_index = 0
         # Create a queue for storing images and driver input

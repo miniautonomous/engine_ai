@@ -70,8 +70,6 @@ class EngineApp(App):
         self.rs_is_on = False
         # Are we recording?
         self.record_on = False
-        # Net selected?
-        self.net_model_selected = False
         # Net loaded?
         self.net_loaded = False
         # Log folder selected?
@@ -83,9 +81,6 @@ class EngineApp(App):
 
         # Set a variety of default values
         self._set_defaults()
-
-        # Initiate camera and Arduino
-        self._start_systems()
 
     def _set_defaults(self):
         """
@@ -119,21 +114,6 @@ class EngineApp(App):
         self.camera_buffer_fps = np.full(self.moving_avg_length,
                                          1 * int(self.rs_frame_rate))
 
-    def _start_systems(self):
-        """
-            Kick on the camera and the Arduino.
-
-        """
-        # Camera pipeline creation
-        try:
-            self.rs_pipeline = rs.pipeline()
-            self.rs_config = rs.config()
-        except ValueError:
-            print('RealTime Camera connection issue. Please check.')
-
-        # Start the Arduino
-        self.start_arduino()
-
     def build(self):
         """
           This is the first method that Kivy calls to build the GUI.
@@ -151,6 +131,9 @@ class EngineApp(App):
         self.file_IO = UserPath('EngineApp.py')
         self.ui = EngineAppGUI(self)                                                                                    # noqa
 
+        # Initiate camera and Arduino
+        self._start_systems()
+
         # Stream file object to record data
         self.stream_to_file = StreamToHDF5(self.ui.image_width,
                                            self.ui.image_height,
@@ -159,6 +142,21 @@ class EngineApp(App):
                                            self.ui.throttle_neutral,
                                            self.ui.throttle_max)
         return self.ui
+
+    def _start_systems(self):
+        """
+            Kick on the camera and the Arduino.
+
+        """
+        # Camera pipeline creation
+        try:
+            self.rs_pipeline = rs.pipeline()
+            self.rs_config = rs.config()
+        except ValueError:
+            print('RealTime Camera connection issue. Please check.')
+
+        # Start the Arduino
+        self.start_arduino()
 
     def drive_loop(self, dt: int):
         """
@@ -203,7 +201,7 @@ class EngineApp(App):
         else:
             drive_mode = 'Autonomous'
         # Display mode
-        ui_messages += f', Mode: {drive_mode}={mode_pwm:d}'
+        ui_messages += f', Mode: {drive_mode}={mode_pwm:3.0f}'
 
         # Are we recording?
         """
@@ -219,16 +217,22 @@ class EngineApp(App):
         else:
             self.record_on = False
         # Display record option
-        ui_messages += f', Record Mode: {self.record_on}={record_pwm:d}'
+        ui_messages += f', Record Mode: {self.record_on}={record_pwm:3.0f}'
 
         # Drive the car
         if drive_mode == 'Manual':
             steering_output, throttle_output = self.drive_manual()
+            ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
+
         # Have the car drive itself
         else:
-            steering_output, throttle_output = self.drive_autonomous()
-        # Display steering and throttle
-        ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
+            # Check first if a network is loaded
+            if self.net_loaded:
+                steering_output, throttle_output = self.drive_autonomous()
+                ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
+            else:
+                ui_messages = f'You need to load a network before driving autonomously!'
+                steering_output, throttle_output = self.drive_manual()
 
         # Record data
         if self.record_on and self.log_folder_selected:
@@ -286,7 +290,6 @@ class EngineApp(App):
         steering_output: (int) inference-based steering output
         throttle_output: (int) inference-based throttle output
         """
-        # @TODO: Ask Francois about this bit of code (from xCar.py)
         # Resize the image to be compatible with neural network
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
 
@@ -317,7 +320,7 @@ class EngineApp(App):
             self.stop_arduino()
 
             # Close the log file if you are recording
-            if self.record_on:
+            if self.record_on and self.log_folder_selected:
                 self.stream_to_file.close_log_file()
 
         # Turn things ON
@@ -371,7 +374,7 @@ class EngineApp(App):
             # @TODO is currentPaths[0] the correct path to the DNN?
             self.root.file_dialog.lblFilePath.text = self.file_IO.current_paths[0]
             self.root.file_dialog.selectButton.text = 'Selected File'
-            self.net_model_selected = True
+            self.net_loaded = True
 
             # Load the network model now that it has been selected
             self.load_dnn()
