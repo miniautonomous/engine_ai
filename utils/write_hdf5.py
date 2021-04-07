@@ -149,10 +149,10 @@ class StreamToHDF5(UserPath):
         self.log_file.create_group(frame_name)
 
         # Within each frame/group, each entry is it's own dataset
+        self.log_file.create_dataset(frame_name+'/frameRate', data=log_data[0])
         self.log_file.create_dataset(frame_name+'/steering', data=log_data[1])
         self.log_file.create_dataset(frame_name+'/throttle', data=log_data[2])
-        self.log_file.create_dataset(frame_name+'/frameRate', data=log_data[3])
-        self.log_file.create_dataset(frame_name+'/image', data=log_data[4])
+        self.log_file.create_dataset(frame_name+'/image', data=log_data[3])
 
     def close_log_file(self):
         """
