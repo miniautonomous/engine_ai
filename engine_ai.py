@@ -397,7 +397,7 @@ class EngineApp(App):
         """
         self.stream_to_file.select_user_data_folder(self.stream_to_file.user_data_folder, 'select',
                                                     'miniCarData')
-        self.ui.loggingOpt.lblLogFolder.text = '  ' + self.stream_to_file.user_data_folder
+        self.ui.fileDiag.lblLogFolderPath.text = '  ' + self.stream_to_file.user_data_folder
         self.log_folder_selected = True
 
     def run_camera(self):

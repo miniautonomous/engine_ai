@@ -62,18 +62,18 @@ class UserPath(object):
             # self.app_folder, _ = os.path.split(self.app_config_file)
             self.app_config_file += '_lnx.cfg'
 
-            # 2. Actually create the 'App' configuration file if needed
-            if not os.path.isfile(self.app_config_file):
-                # Initialize the dictionary key associated with the default path
-                self.app_config['default_path'] = os.path.expanduser('~')
-                self.app_config['cfg_file_path'] = self.app_config_file
-                # Save the dictionary to init file.
-                with open(self.app_config_file, 'w') as tmpFile:
-                    json.dump(self.app_config, tmpFile)
-            else:
-                # Simply read the file if it exist
-                with open(self.app_config_file) as tmpFile:
-                    self.app_config = json.load(tmpFile)
+        # 2. Actually create the 'App' configuration file if needed
+        if not os.path.isfile(self.app_config_file):
+            # Initialize the dictionary key associated with the default path
+            self.app_config['default_path'] = os.path.expanduser('~')
+            self.app_config['cfg_file_path'] = self.app_config_file
+            # Save the dictionary to init file.
+            with open(self.app_config_file, 'w') as tmpFile:
+                json.dump(self.app_config, tmpFile)
+        else:
+            # Simply read the file if it exist
+            with open(self.app_config_file) as tmpFile:
+                self.app_config = json.load(tmpFile)
 
     def store_current_paths(self, key_name:str):
         """
@@ -140,7 +140,7 @@ class UserPath(object):
         # Confirm a folder is available, if not query the user to confirm which folder to use
         elif action.lower() == 'confirm':
             if  not os.path.isdir(folder_path):
-                self.path_select(path_tag, 'dirSelect')
+                self.path_select(path_tag, 'dir_select')
                 if self.num_paths is not 0:
                     self.user_data_folder = self.current_paths[0]
                 else:
@@ -150,7 +150,7 @@ class UserPath(object):
 
         # Open the file dialog (which will save the path in the object property).
         elif action.lower() == 'select':
-            self.path_select(path_tag, 'dirSelect')
+            self.path_select(path_tag, 'dir_select')
             if self.num_paths is not 0:
                 self.user_data_folder = self.current_paths[0]
             else:
