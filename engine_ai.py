@@ -161,13 +161,13 @@ class EngineApp(App):
             self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
 
         # Create a message stream to inform the user of current status/performance
-        ui_messages = f'Drive Loop (fps): {fp_avg:3.0f}'
+        self.root.vehStatus.loopFps.text = f'Primary Loop (FPS): {fp_avg:3.0f}'
 
         # Run the camera
         self.run_camera()
 
         # Display camera fps
-        ui_messages += f', Camera (fps): {self.camera_real_rate:3.0f}'
+        self.root.vehStatus.camFps.text = f'Camera Loop (FPS): {self.camera_real_rate:3.0f}'
         """
             Now that the camera is running, the image it produces is available
             to all methods via 'self.ui.primary_image'.
@@ -187,7 +187,7 @@ class EngineApp(App):
         else:
             drive_mode = 'Autonomous'
         # Display mode
-        ui_messages += f', Mode: {drive_mode}={mode_pwm:3.0f}'
+        ui_messages = f', Mode: {drive_mode}={mode_pwm:3.0f}'
 
         # Are we recording?
         """
@@ -209,7 +209,7 @@ class EngineApp(App):
         if drive_mode == 'Manual':
             steering_output, throttle_output = self.drive_manual()
             ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
-        # or have the car drive itself
+        # Or have the car drive itself
         else:
             # Check first if a network is loaded
             if self.net_loaded:
