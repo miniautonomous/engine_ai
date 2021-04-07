@@ -100,8 +100,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.nn_image_width = 640
-        self.nn_image_height = 480
+        self.nn_image_width = 84
+        self.nn_image_height = 47
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -136,8 +136,8 @@ class EngineApp(App):
         self.ui = EngineAppGUI(self)                                                                                    # noqa
 
         # Stream file object to record data
-        self.stream_to_file = StreamToHDF5(self.ui.image_width,
-                                           self.ui.image_height,
+        self.stream_to_file = StreamToHDF5(self.nn_image_width,
+                                           self.nn_image_height,
                                            self.ui.steering_max,
                                            self.ui.steering_min,
                                            self.ui.throttle_neutral,
@@ -221,10 +221,14 @@ class EngineApp(App):
 
         # Record data
         if self.record_on and self.log_folder_selected:
+            # Resize the image to be saved for training
+            record_image = cv2.resize(self.ui.primary_image,
+                                      (self.nn_image_width, self.nn_image_height))
             self.stream_to_file.log_queue.put((self.stream_to_file.frame_index,
+                                               fp_avg,
                                                steering_output,
                                                throttle_output,
-                                               self.ui.primary_image))
+                                               record_image))
             self.stream_to_file.frame_index += 1
             # The vehicle is now recording
             self.previously_recording = True
