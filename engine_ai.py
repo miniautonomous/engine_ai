@@ -64,6 +64,10 @@ class EngineApp(App):
         self.nn_image_height = 0
         self.sequence_length = 0
 
+        # RealSense camera pipeline
+        self.rs_pipeline = rs.pipeline()
+        self.rs_config = rs.config()
+
         # Arduino connected?
         self.board_available = False
         # Camera on?
@@ -131,9 +135,6 @@ class EngineApp(App):
         self.file_IO = UserPath('EngineApp.py')
         self.ui = EngineAppGUI(self)                                                                                    # noqa
 
-        # Initiate camera and Arduino
-        self._start_systems()
-
         # Stream file object to record data
         self.stream_to_file = StreamToHDF5(self.ui.image_width,
                                            self.ui.image_height,
@@ -142,21 +143,6 @@ class EngineApp(App):
                                            self.ui.throttle_neutral,
                                            self.ui.throttle_max)
         return self.ui
-
-    def _start_systems(self):
-        """
-            Kick on the camera and the Arduino.
-
-        """
-        # Camera pipeline creation
-        try:
-            self.rs_pipeline = rs.pipeline()
-            self.rs_config = rs.config()
-        except ValueError:
-            print('RealTime Camera connection issue. Please check.')
-
-        # Start the Arduino
-        self.start_arduino()
 
     def drive_loop(self, dt: int):
         """
@@ -213,9 +199,9 @@ class EngineApp(App):
         """
         record_pwm = self.arduino_board.recIn()
         if record_pwm < 1500:
-            self.record_on = True
-        else:
             self.record_on = False
+        else:
+            self.record_on = True
         # Display record option
         ui_messages += f', Record Mode: {self.record_on}={record_pwm:3.0f}'
 
@@ -223,8 +209,7 @@ class EngineApp(App):
         if drive_mode == 'Manual':
             steering_output, throttle_output = self.drive_manual()
             ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
-
-        # Have the car drive itself
+        # or have the car drive itself
         else:
             # Check first if a network is loaded
             if self.net_loaded:
@@ -311,13 +296,15 @@ class EngineApp(App):
             self.root.powerCtrls.power.text = 'Power OFF'
 
             # Camera
-            try:
-                self.rs_pipeline.stop()
-            except ValueError:
-                pass
+            if self.rs_is_on:
+                try:
+                    self.rs_pipeline.stop()
+                except ValueError:
+                    pass
 
             # Arduino
-            self.stop_arduino()
+            if self.board_available:
+                self.stop_arduino()
 
             # Close the log file if you are recording
             if self.record_on and self.log_folder_selected:
