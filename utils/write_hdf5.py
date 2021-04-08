@@ -15,6 +15,7 @@ class StreamToHDF5(UserPath):
                  steering_min: int,
                  throttle_neutral: int,
                  throttle_max: int,
+                 trottle_min: int,
                  file_version_number: int=1.0,
                  f_name_suffix: str= ' '):
         """
@@ -28,6 +29,7 @@ class StreamToHDF5(UserPath):
         steering_min: (int) steering min value
         throttle_neutral: (int) neutral throttle value
         throttle_max: (int) maximum throttle value
+        throttle_min: (int) minimum throttle value
         file_version_number: (float) version of the file format
         f_name_suffix: (str) suffix of file name
         """
@@ -51,6 +53,7 @@ class StreamToHDF5(UserPath):
         # Set the throttle attributes
         self.throttle_neutral = throttle_neutral
         self.throttle_max = throttle_max
+        self.throttle_min = throttle_min
 
         # Set a lock for control of write function
         self.lock = threading.Lock()
@@ -133,6 +136,7 @@ class StreamToHDF5(UserPath):
         self.log_file.attrs['steerMax'] = str(self.steerMax)
         self.log_file.attrs['steerMin'] = str(self.steerMin)
         self.log_file.attrs['throttleMax'] = str(self.throttle_max)
+        self.log_file.attrs['throttleMin'] = str(self.throttle_min)
         self.log_file.attrs['throttleNeutral'] = str(self.throttle_neutral)
 
     def write_data(self,  current_frame: int,  log_data: list):

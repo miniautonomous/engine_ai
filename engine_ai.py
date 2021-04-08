@@ -12,7 +12,7 @@ import cv2
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.folder_functions import UserPath
 from utils.write_hdf5 import StreamToHDF5
-from utils.data_functions import FolderUtils
+from utils.data_functions import DataUtils
 from arduino.pyArduino import Arduino
 
 # Camera related imports
@@ -58,7 +58,7 @@ class EngineApp(App):
         self.model = None
         self.image_buffer = None
         self.car_name = "miniAutonomous"
-        self.functional_utils = FolderUtils()
+        self.data_utils = DataUtils()
         self.camera_real_rate = 0
         self.nn_image_width = 0
         self.nn_image_height = 0
@@ -100,8 +100,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.nn_image_width = 84
-        self.nn_image_height = 47
+        self.nn_image_width = 160
+        self.nn_image_height = 120
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -141,7 +141,8 @@ class EngineApp(App):
                                            self.ui.steering_max,
                                            self.ui.steering_min,
                                            self.ui.throttle_neutral,
-                                           self.ui.throttle_max)
+                                           self.ui.throttle_max,
+                                           self.ui.throttle_min)
         return self.ui
 
     def drive_loop(self, dt: int):
@@ -158,7 +159,7 @@ class EngineApp(App):
         dt: (int) time step given at 1/dt
         """
         self.drive_loop_buffer_fps, fp_avg =\
-            self.functional_utils.moving_avg(self.drive_loop_buffer_fps, 1/dt)
+            self.data_utils.moving_avg(self.drive_loop_buffer_fps, 1 / dt)
 
         # Create a message stream to inform the user of current status/performance
         self.root.vehStatus.loopFps.text = f'Primary Loop (FPS): {fp_avg:3.0f}'
@@ -220,6 +221,7 @@ class EngineApp(App):
                 steering_output, throttle_output = self.drive_manual()
 
         # Record data
+        # @TODO: Set the width to 320, height 240... no resize here!
         if self.record_on and self.log_folder_selected:
             # Resize the image to be saved for training
             record_image = cv2.resize(self.ui.primary_image,
@@ -237,11 +239,6 @@ class EngineApp(App):
             self.stream_to_file.close_log_file()
             self.previously_recording = False
 
-        # @TODO: Discuss with Francois why xCar uses self.ui, where here we seem to need to use self.root
-        # From xCar.py:
-        # Last step, update the user.
-        # self.ui.statusMsg.lblStatusMsg.text = tmpMsg
-
         # Send the message stream to the UI
         self.root.statusBar.lblStatusBar.text = ui_messages
 
@@ -257,16 +254,16 @@ class EngineApp(App):
         # Steering
         steering_output = self.arduino_board.steerIn()
         # Clip to range if required
-        steering_output = self.functional_utils.chop_value(steering_output,
-                                                           self.ui.steering_min,
-                                                           self.ui.steering_max)
+        steering_output = self.data_utils.chop_value(steering_output,
+                                                     self.ui.steering_min,
+                                                     self.ui.steering_max)
         self.arduino_board.Servos.write(STEERING_SERVO, steering_output)
 
         # Throttle
         throttle_output = self.arduino_board.throttleIn()
-        throttle_output = self.functional_utils.chop_value(throttle_output,
-                                                           self.ui.throttle_min,
-                                                           self.ui.throttle_max)
+        throttle_output = self.data_utils.chop_value(throttle_output,
+                                                     self.ui.throttle_min,
+                                                     self.ui.throttle_max)
         self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
         return steering_output, throttle_output
 
@@ -283,11 +280,23 @@ class EngineApp(App):
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
 
         # Add it to the circular buffer for RNN processing
-        input_tensor = np.expand_dims(self.functional_utils.get_buffer(new_image), axis=0)
+        input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
 
         # Do inference on the buffer of images
-        inferred_steering, inferred_throttle = self.model.predict(input_tensor)
-        return inferred_steering, inferred_throttle
+        drive_inference = self.model.predict(input_tensor)[0]
+        """
+            Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
+            so we need to rescale these to the current PWM ranges.
+        """
+        rescaled_steering = self.data_utils.map_function(drive_inference[0],
+                                                         [-100, 100,
+                                                         self.ui.steering_min,
+                                                         self.ui.steering_max])
+        rescaled_throttle = self.data_utils.map_function(drive_inference[1],
+                                                         [0, 100,
+                                                         self.ui.throttle_min,
+                                                         self.ui.throttle_max])
+        return rescaled_steering, rescaled_throttle
 
     def start_drive(self):
         """
@@ -363,8 +372,8 @@ class EngineApp(App):
             # The user selected an HDF5 file
             self.root.statusBar.lblStatusBar.text = ' File loaded !'
             # @TODO is currentPaths[0] the correct path to the DNN?
-            self.root.file_dialog.lblFilePath.text = self.file_IO.current_paths[0]
-            self.root.file_dialog.selectButton.text = 'Selected File'
+            self.root.fileDiag.lblDnnPath.text = self.file_IO.current_paths[0]
+            self.root.fileDiag.selectDNN.text = 'Selected File'
             self.net_loaded = True
 
             # Load the network model now that it has been selected
@@ -386,10 +395,10 @@ class EngineApp(App):
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \
-                self.functional_utils.create_circular_buffer(self.sequence_length,
-                                                             (self.nn_image_height,
-                                                              self.nn_image_width,
-                                                              self.color_depth))
+                self.data_utils.create_circular_buffer(self.sequence_length,
+                                                       (self.nn_image_height,
+                                                        self.nn_image_width,
+                                                        self.color_depth))
 
         except ValueError:
             print('Selected file is not compatible with Keras load.')
@@ -408,7 +417,7 @@ class EngineApp(App):
         """
             Capture an image from a Intel Real Sense Camera
         """
-        self.functional_utils.initiate_time()
+        self.data_utils.initiate_time()
         # Process a frame
         frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
@@ -431,13 +440,13 @@ class EngineApp(App):
         self.ui.canvas.ask_update()
 
         # Compute the camera actual frame rate
-        delta_fps = self.functional_utils.get_timer()
+        delta_fps = self.data_utils.get_timer()
         if delta_fps == 0:
             print('rsIntelDaq method: Imaged dropped')
             # Default is set to 30 in case of a frame drop
             delta_fps = 1 / 30
-        self.camera_buffer_fps, fps_avg = self.functional_utils.moving_avg(self.camera_buffer_fps,
-                                                                           1 / delta_fps)
+        self.camera_buffer_fps, fps_avg = self.data_utils.moving_avg(self.camera_buffer_fps,
+                                                                     1 / delta_fps)
         self.camera_real_rate = round(fps_avg, 1)
 
     def start_arduino(self):
@@ -493,8 +502,8 @@ class EngineAppGUI(GridLayout):
         self.image_width_factor = 1
 
         # Set VGA resolution for the camera output window
-        self.image_width = 640
-        self.image_height = 480
+        self.image_width = 320
+        self.image_height = 240
 
         # Steering PWM settings, (done here to display to the user)
         self.steering_neutral = 1452

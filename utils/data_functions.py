@@ -2,15 +2,16 @@ import numpy as np
 import time
 
 
-class FolderUtils:
+class DataUtils:
     def __init__(self):
         " Miscellaneous numeric utilities used in various parts of the code."
         self.timer_start = 0
         self.measure_time = 0
         self.mean_avg_buffer = []
         self.mean_avg_length = 0
-        self.circular_buffer_length = 0
         self.circular_index = 0
+        self.circular_buffer = None
+        self.circular_buffer_length = 0
 
     def initiate_time(self):
         self.timer_start = time.time()
@@ -29,12 +30,12 @@ class FolderUtils:
         buffer_length: (int) buffer length
         buffer_shape: (tuple) shape of buffer
         """
-        self.circBufLength = buffer_length
+        self.circular_buffer_length = buffer_length
         # Create a buffer
-        self.circBuffer = np.zeros((int(2 * self.circBufLength),
-                                    int(buffer_shape[0]),
-                                    int(buffer_shape[1]),
-                                    int(buffer_shape[2])), np.uint8)
+        self.circular_buffer = np.zeros((int(2 * self.circular_buffer_length),
+                                         int(buffer_shape[0]),
+                                         int(buffer_shape[1]),
+                                         int(buffer_shape[2])), np.uint8)
         self.circIndex = 0  # Make sure to reset the index
 
     def get_buffer(self, newData):
@@ -51,10 +52,10 @@ class FolderUtils:
 
         """
         tmpIdx = (self.circular_index % self.circular_buffer_length)
-        self.circBuffer[tmpIdx, :, :, :] = newData
-        self.circBuffer[tmpIdx + self.circular_buffer_length, :, :, :] = newData
+        self.circular_buffer[tmpIdx, :, :, :] = newData
+        self.circular_buffer[tmpIdx + self.circular_buffer_length, :, :, :] = newData
         self.circular_index += 1
-        return self.circBuffer[tmpIdx + 1:tmpIdx + 1 + self.circular_buffer_length, :, :, :]
+        return self.circular_buffer[tmpIdx + 1:tmpIdx + 1 + self.circular_buffer_length, :, :, :]
 
     @staticmethod
     def moving_avg(avg_buffer: np.array, new_value: float):
