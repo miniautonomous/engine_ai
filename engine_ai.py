@@ -507,14 +507,14 @@ class EngineAppGUI(GridLayout):
         self.image_height = 240
 
         # Steering PWM settings, (done here to display to the user)
-        self.steering_neutral = 1452
-        self.steering_min = 970
-        self.steering_max = 1944
+        self.steering_neutral = 1500
+        self.steering_min = 1000
+        self.steering_max = 2000
 
         # Throttle PWM settings
-        self.throttle_neutral = 1520
-        self.throttle_min = 500
-        self.throttle_max = 2500
+        self.throttle_neutral = 1500
+        self.throttle_min = 1000
+        self.throttle_max = 2000
 
         # Canvases default background to light blue
         self.ui_window.clear_color = ([.01, .2, .36, 1])
