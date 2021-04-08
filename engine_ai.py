@@ -363,7 +363,7 @@ class EngineApp(App):
 
         """
         # Filter for HDF5 model files
-        self.file_IO.file_type = [('hdf5 files', '.h5'), ('all files', '.*')]
+        self.file_IO.file_type = [('Keras Model File', '.h5')]
         self.file_IO.path_select(path_tag='EngineAppGUI')
         if self.file_IO.num_paths == 0:
             # User cancelled the selection
@@ -408,8 +408,9 @@ class EngineApp(App):
             Select the folder to save log files to when creating training data.
 
         """
-        self.stream_to_file.select_user_data_folder(self.stream_to_file.user_data_folder, 'select',
-                                                    'miniCarData')
+        self.file_IO.path_select(path_tag='DataDir', path_type='dir_select')
+        self.stream_to_file.user_data_folder = self.file_IO.current_paths[0]
+        self.stream_to_file.select_user_data_folder(self.stream_to_file.user_data_folder, action='validate')
         self.ui.fileDiag.lblLogFolderPath.text = '  ' + self.stream_to_file.user_data_folder
         self.log_folder_selected = True
 

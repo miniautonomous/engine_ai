@@ -15,7 +15,7 @@ class StreamToHDF5(UserPath):
                  steering_min: int,
                  throttle_neutral: int,
                  throttle_max: int,
-                 trottle_min: int,
+                 throttle_min: int,
                  file_version_number: int=1.0,
                  f_name_suffix: str= ' '):
         """
