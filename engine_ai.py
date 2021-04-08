@@ -400,6 +400,9 @@ class EngineApp(App):
                                                         self.nn_image_width,
                                                         self.color_depth))
 
+            # Perform a dummy inference here to sync with the Arduino
+            _, _ = self.drive_autonomous()
+
         except ValueError:
             print('Selected file is not compatible with Keras load.')
 
