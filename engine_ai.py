@@ -221,8 +221,10 @@ class EngineApp(App):
                 steering_output, throttle_output = self.drive_manual()
 
         # Record data
-        # @TODO: Set the width to 320, height 240... no resize here!
         if self.record_on and self.log_folder_selected:
+            # Initiate a thread for writing to a data file
+            self.stream_to_file.initiate_stream()
+
             # Resize the image to be saved for training
             record_image = cv2.resize(self.ui.primary_image,
                                       (self.nn_image_width, self.nn_image_height))
@@ -238,6 +240,8 @@ class EngineApp(App):
             # Close a file stream if one was open and the user requested it be closed
             self.stream_to_file.close_log_file()
             self.previously_recording = False
+            # Reset the frame index to zero in case the user wants to restart recording
+            self.stream_to_file.frame_index = 0
 
         # Send the message stream to the UI
         self.root.statusBar.lblStatusBar.text = ui_messages
@@ -343,9 +347,6 @@ class EngineApp(App):
             # Start the Arduino
             if not self.board_available:
                 self.start_arduino()
-
-            # Initiate a thread for writing to the a data file
-            self.stream_to_file.initiate_stream()
 
             """
                 NOTE: This is the call that kicks off the primary drive loop

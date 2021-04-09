@@ -74,11 +74,11 @@ class StreamToHDF5(UserPath):
             Initiate a thread to stream data to a file.
         """
         # Create a thread to do actual writing
-        self.thread_running = True
         self.thread_write = threading.Thread(name='WriteHDF5',
                                              target=self.write_queue_threading, args=( ))
         self.thread_write.setDaemon(True)
         self.thread_write.start()
+        self.thread_running = True
 
     def write_queue_threading(self):
         """
