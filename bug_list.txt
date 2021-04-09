@@ -1,0 +1,8 @@
+Rolling list of bugs to deal with:
+
+Current
+2) Turning the record on and then off creates an error.
+3) Closing the UI in the Jetson nano does not exit cleanly.
+
+Fixed:
+1) Output of inference from DNN should be rounded to int. (Batch 1: 1 of 3)

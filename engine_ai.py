@@ -100,8 +100,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.nn_image_width = 160
-        self.nn_image_height = 120
+        self.nn_image_width = 84
+        self.nn_image_height = 47
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -296,7 +296,7 @@ class EngineApp(App):
                                                          [0, 100,
                                                          self.ui.throttle_min,
                                                          self.ui.throttle_max])
-        return rescaled_steering, rescaled_throttle
+        return int(rescaled_steering), int(rescaled_throttle)
 
     def start_drive(self):
         """
