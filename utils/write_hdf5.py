@@ -17,7 +17,7 @@ class StreamToHDF5(UserPath):
                  throttle_max: int,
                  throttle_min: int,
                  file_version_number: int=1.0,
-                 f_name_suffix: str= ' '):
+                 f_name_suffix: str= '_'):
         """
           This class stream to disk "frames" (i.e., groups) of data sets using a queue.
 
