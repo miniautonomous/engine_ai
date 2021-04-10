@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow.keras as keras
+import tensorflow as tf
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -214,8 +215,10 @@ class EngineApp(App):
         else:
             # Check first if a network is loaded
             if self.net_loaded:
+                # self.data_utils.initiate_time()
                 steering_output, throttle_output = self.drive_autonomous()
                 ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
+                # time_for_inference = self.data_utils.get_timer()
             else:
                 ui_messages = f'You need to load a network before driving autonomously!'
                 steering_output, throttle_output = self.drive_manual()
@@ -287,7 +290,9 @@ class EngineApp(App):
         input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
 
         # Do inference on the buffer of images
-        drive_inference = self.model.predict(input_tensor)[0]
+        # drive_inference = self.model.predict(input_tensor)[0]
+        drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
+        drive_inference = drive_inference['dense'][0].numpy()
         """
             Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
             so we need to rescale these to the current PWM ranges.
@@ -364,8 +369,9 @@ class EngineApp(App):
 
         """
         # Filter for HDF5 model files
-        self.file_IO.file_type = [('Keras Model File', '.h5')]
-        self.file_IO.path_select(path_tag='EngineAppGUI')
+        # self.file_IO.file_type = [('Keras Model File', '.h5')]
+        self.file_IO.path_select(path_tag='DNNDir', path_type='dir_select')
+        # self.file_IO.path_select(path_tag='EngineAppGUI')
         if self.file_IO.num_paths == 0:
             # User cancelled the selection
             self.root.statusBar.lblStatusBar.text = ' User cancelled selection'
@@ -386,13 +392,14 @@ class EngineApp(App):
 
         """
         try:
-            self.model = keras.models.load_model(self.file_IO.current_paths[0])
-            self.model.summary()
+            # self.model = keras.models.load_model(self.file_IO.current_paths[0])
+            self.model = tf.saved_model.load(self.file_IO.current_paths[0])
+            self.prediction = self.model.signatures['serving_default']
 
             # Define the network input image dimensions from the model's input tensor
-            self.sequence_length = self.model.input.shape[1]
-            self.nn_image_height = self.model.input.shape[2]
-            self.nn_image_width = self.model.input.shape[3]
+            self.sequence_length = self.prediction.inputs[0].shape[1]
+            self.nn_image_height = self.prediction.inputs[0].shape[2]
+            self.nn_image_width = self.prediction.inputs[0].shape[3]
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \
