@@ -1,6 +1,3 @@
-import numpy as np
-import tensorflow.keras as keras
-import tensorflow as tf
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -9,6 +6,9 @@ from kivy.properties import ObjectProperty
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 import cv2
+import numpy as np
+import tensorflow.keras as keras
+import tensorflow as tf
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.folder_functions import UserPath
@@ -23,6 +23,14 @@ import pyrealsense2 as rs
 STEERING_SERVO = 9
 THROTTLE_SERVO = 10
 
+# Using TensorRT?
+"""
+    For now, this is decided without exposure to the user since the Jetson Nano is 
+    virtually useless without TensorRT parsing. We may decide to incorporate this
+    into the UI.
+"""
+USE_TRT = True
+
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camctrls.kv')
 Builder.load_file('kvSubPanels/vehiclestatus.kv')
@@ -30,12 +38,6 @@ Builder.load_file('kvSubPanels/pwmsettings.kv')
 Builder.load_file('kvSubPanels/powercontrols.kv')
 Builder.load_file('kvSubPanels/filediag.kv')
 Builder.load_file('kvSubPanels/statusbar.kv')
-
-"""
-    Todo List:
-    1) Figure out the message to the display part.
-
-"""
 
 
 class EngineApp(App):
@@ -58,6 +60,7 @@ class EngineApp(App):
         self.stream_to_file = None
         self.model = None
         self.image_buffer = None
+        self.prediction = None
         self.car_name = "miniAutonomous"
         self.data_utils = DataUtils()
         self.camera_real_rate = 0
@@ -290,9 +293,11 @@ class EngineApp(App):
         input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
 
         # Do inference on the buffer of images
-        # drive_inference = self.model.predict(input_tensor)[0]
-        drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
-        drive_inference = drive_inference['dense'][0].numpy()
+        if USE_TRT:
+            drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
+            drive_inference = drive_inference['dense'][0].numpy()
+        else:
+            drive_inference = self.model.predict(input_tensor)[0]
         """
             Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
             so we need to rescale these to the current PWM ranges.
@@ -368,17 +373,20 @@ class EngineApp(App):
             Help the user select the model HDF5 or the directory to which to store data.
 
         """
-        # Filter for HDF5 model files
-        # self.file_IO.file_type = [('Keras Model File', '.h5')]
-        self.file_IO.path_select(path_tag='DNNDir', path_type='dir_select')
-        # self.file_IO.path_select(path_tag='EngineAppGUI')
+        if USE_TRT:
+            # Load a directory with the TensorRT parsed model
+            self.file_IO.path_select(path_tag='DNNDir', path_type='dir_select')
+        else:
+            # Filter for Keras-based HDF5 model files
+            self.file_IO.file_type = [('Keras Model File', '.h5')]
+            self.file_IO.path_select(path_tag='EngineAppGUI')
+
         if self.file_IO.num_paths == 0:
             # User cancelled the selection
             self.root.statusBar.lblStatusBar.text = ' User cancelled selection'
         else:
             # The user selected an HDF5 file
             self.root.statusBar.lblStatusBar.text = ' File loaded !'
-            # @TODO is currentPaths[0] the correct path to the DNN?
             self.root.fileDiag.lblDnnPath.text = self.file_IO.current_paths[0]
             self.root.fileDiag.selectDNN.text = 'Selected File'
             self.net_loaded = True
@@ -392,14 +400,22 @@ class EngineApp(App):
 
         """
         try:
-            # self.model = keras.models.load_model(self.file_IO.current_paths[0])
-            self.model = tf.saved_model.load(self.file_IO.current_paths[0])
-            self.prediction = self.model.signatures['serving_default']
+            if USE_TRT:
+                self.model = tf.saved_model.load(self.file_IO.current_paths[0])
+                self.prediction = self.model.signatures['serving_default']
 
-            # Define the network input image dimensions from the model's input tensor
-            self.sequence_length = self.prediction.inputs[0].shape[1]
-            self.nn_image_height = self.prediction.inputs[0].shape[2]
-            self.nn_image_width = self.prediction.inputs[0].shape[3]
+                # Define the network input image dimensions from the model's input tensor
+                self.sequence_length = self.prediction.inputs[0].shape[1]
+                self.nn_image_height = self.prediction.inputs[0].shape[2]
+                self.nn_image_width = self.prediction.inputs[0].shape[3]
+            else:
+                self.model = keras.models.load_model(self.file_IO.current_paths[0])
+                self.model.summary()
+
+                # Define the network input image dimensions from the model's input tensor
+                self.sequence_length = self.model.input.shape[1]
+                self.nn_image_height = self.model.input.shape[2]
+                self.nn_image_width = self.model.input.shape[3]
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \
