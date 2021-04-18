@@ -64,6 +64,8 @@ class EngineApp(App):
         self.car_name = "miniAutonomous"
         self.data_utils = DataUtils()
         self.camera_real_rate = 0
+        self.recording_image_width = 0
+        self.recording_image_height = 0
         self.nn_image_width = 0
         self.nn_image_height = 0
         self.sequence_length = 0
@@ -104,8 +106,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.nn_image_width = 84
-        self.nn_image_height = 47
+        self.recording_image_width = 84
+        self.recording_image_height = 47
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -140,8 +142,8 @@ class EngineApp(App):
         self.ui = EngineAppGUI(self)                                                                                    # noqa
 
         # Stream file object to record data
-        self.stream_to_file = StreamToHDF5(self.nn_image_width,
-                                           self.nn_image_height,
+        self.stream_to_file = StreamToHDF5(self.recording_image_width,
+                                           self.recording_image_height,
                                            self.ui.steering_max,
                                            self.ui.steering_min,
                                            self.ui.throttle_neutral,
@@ -233,7 +235,7 @@ class EngineApp(App):
 
             # Resize the image to be saved for training
             record_image = cv2.resize(self.ui.primary_image,
-                                      (self.nn_image_width, self.nn_image_height))
+                                      (self.recording_image_width, self.recording_image_height))
             self.stream_to_file.log_queue.put((self.stream_to_file.frame_index,
                                                fp_avg,
                                                steering_output,
