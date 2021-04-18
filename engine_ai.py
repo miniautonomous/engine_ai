@@ -29,7 +29,7 @@ THROTTLE_SERVO = 10
     virtually useless without TensorRT parsing. We may decide to incorporate this
     into the UI.
 """
-USE_TRT = True
+USE_TRT = False
 
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camctrls.kv')
@@ -106,8 +106,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.recording_image_width = 84
-        self.recording_image_height = 47
+        self.recording_image_width = 120
+        self.recording_image_height = 90
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
