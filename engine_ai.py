@@ -309,11 +309,18 @@ class EngineApp(App):
                                                          self.ui.steering_min,
                                                          self.ui.steering_max])
         self.arduino_board.Servos.write(STEERING_SERVO, rescaled_steering)
+        # @TODO For initial testing, I CONTROL THROTTLE!!
         rescaled_throttle = self.data_utils.map_function(drive_inference[1],
                                                          [0, 100,
                                                          self.ui.throttle_min,
                                                          self.ui.throttle_max])
-        self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
+        # self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
+        throttle_output = self.arduino_board.throttleIn()
+        throttle_output = self.data_utils.chop_value(throttle_output,
+                                                     self.ui.throttle_min,
+                                                     self.ui.throttle_max)
+        self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+
         return int(rescaled_steering), int(rescaled_throttle)
 
     def start_drive(self):
