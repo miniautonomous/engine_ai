@@ -29,7 +29,7 @@ THROTTLE_SERVO = 10
     virtually useless without TensorRT parsing. We may decide to incorporate this
     into the UI.
 """
-USE_TRT = False
+USE_TRT = True
 
 # Layout files for GUI sub-panels
 Builder.load_file('kvSubPanels/camctrls.kv')
@@ -308,10 +308,12 @@ class EngineApp(App):
                                                          [-100, 100,
                                                          self.ui.steering_min,
                                                          self.ui.steering_max])
+        self.arduino_board.Servos.write(STEERING_SERVO, rescaled_steering)
         rescaled_throttle = self.data_utils.map_function(drive_inference[1],
                                                          [0, 100,
                                                          self.ui.throttle_min,
                                                          self.ui.throttle_max])
+        self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
         return int(rescaled_steering), int(rescaled_throttle)
 
     def start_drive(self):
