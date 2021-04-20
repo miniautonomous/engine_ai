@@ -1,5 +1,5 @@
 /*
-  Decription:
+  Description:
     This is an optimized version of the package (pip install arduino-python3).
     It was optimized specifically for the miniAV control interface by removing all
     unused functions and implementing external interrupt request to read PWM since the
