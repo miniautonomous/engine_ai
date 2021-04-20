@@ -37,13 +37,13 @@ volatile int steerPrevTime = 0;
 // interrupt 3 => pin 20
 /* NOT currently used*/
 //
-// interrupt 4 => pin 19
-byte PWM_REC = 4;
+// interrupt 4 => pin 19 (Mode button)
+byte PWM_MODE = 4;
 volatile int recordPWM = 0;
 volatile int recordPrevTime = 0;
 //
-// interrupt 5 => pin 18, used for the mode button
-byte PWM_MODE = 5;
+// interrupt 5 => pin 18, (Record button)
+byte PWM_REC = 5;
 volatile int modePWM = 0;
 volatile int modePrevTime = 0;
 
