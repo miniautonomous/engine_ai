@@ -12,13 +12,14 @@
 <EngineAppGUI>:
 
   rows: 6
-  powerCtrls: kvPowerCtrls   # This links the Python property to the Kivy id
-  fileDiag: kvLytFileDiag    # This links the Python property to the Kivy id
-  vehStatus: kvVehStatus  # This links the Python property to the Kivy id
-  pwmSettings: kvPwmSettings  # This links the Python property to the Kivy id
-  statusBar: kvLytStatusBar  # This links the Python property to the Kivy id
+  # This links the Python property to the Kivy id
+  powerCtrls: kvPowerCtrls
+  fileDiag: kvLytFileDiag
+  vehStatus: kvVehStatus
+  pwmSettings: kvPwmSettings
+  statusBar: kvLytStatusBar
 
-  # Instantiate a custom Kivy class that is defined in the "filediag.kv" file sub-panel
+  # Instantiate custom Kivy classes
   PowerCtrls:
     id: kvPowerCtrls
   CamCtrls:
@@ -29,6 +30,5 @@
     id: kvVehStatus
   PWMsettings:
     id: kvPwmSettings
-  # Instantiate a custom Kivy class that is defined in the "status.kv" file sub-panel
   StatusBar:
     id: kvLytStatusBar

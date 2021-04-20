@@ -13,7 +13,10 @@
   # Python properties
   statusLight: kvStatusLight
   loopFps: kvLoopFps
+  inferenceFps: kvInferenceFps
   camFps: kvCamFps
+
+
   # Customize some layout attributes
   orientation: 'horizontal'
   size_hint_y: None
@@ -53,6 +56,13 @@
   Label:
     id: kvLoopFps
     text: 'Primary Loop (FPS): 00'
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
+
+  Label:
+    id: kvInferenceFps
+    text: 'Inference (FPS): 00'
     halign: 'center'
     valign: 'middle'
     text_size: self.size

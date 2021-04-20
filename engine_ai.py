@@ -35,7 +35,7 @@ USE_TRT = True
 Builder.load_file('kvSubPanels/camctrls.kv')
 Builder.load_file('kvSubPanels/vehiclestatus.kv')
 Builder.load_file('kvSubPanels/pwmsettings.kv')
-Builder.load_file('kvSubPanels/powercontrols.kv')
+Builder.load_file('kvSubPanels/powerctrls.kv')
 Builder.load_file('kvSubPanels/filediag.kv')
 Builder.load_file('kvSubPanels/statusbar.kv')
 
