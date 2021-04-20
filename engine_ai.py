@@ -62,6 +62,7 @@ class EngineApp(App):
         self.image_buffer = None
         self.prediction = None
         self.car_name = "miniAutonomous"
+        self.drive_mode = 'Manual'
         self.data_utils = DataUtils()
         self.camera_real_rate = 0
         self.recording_image_width = 0
@@ -189,12 +190,16 @@ class EngineApp(App):
         """
         mode_pwm = self.arduino_board.modeIn()
         # Set the vehicle to manual or autonomous
-        if mode_pwm < 1500:
-            drive_mode = 'Manual'
+        if mode_pwm < 1250:
+            self.drive_mode = 'Manual'
+        elif 1250 < mode_pwm < 1750:
+            # Steering is autonomous, but manual throttle
+            self.drive_mode = 'Steering Autonomous'
         else:
-            drive_mode = 'Autonomous'
+            # Both steering and throttle are autonomous
+            self.drive_mode = 'Full Autonomous'
         # Display mode
-        ui_messages = f', Mode: {drive_mode}={mode_pwm:3.0f}'
+        ui_messages = f', Mode: {self.drive_mode}={mode_pwm:3.0f}'
 
         # Are we recording?
         """
@@ -213,7 +218,7 @@ class EngineApp(App):
         ui_messages += f', Record Mode: {self.record_on}={record_pwm:3.0f}'
 
         # Drive the car
-        if drive_mode == 'Manual':
+        if self.drive_mode == 'Manual':
             steering_output, throttle_output = self.drive_manual()
             ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
         # Or have the car drive itself
@@ -222,8 +227,8 @@ class EngineApp(App):
             if self.net_loaded:
                 # self.data_utils.initiate_time()
                 steering_output, throttle_output = self.drive_autonomous()
-                ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
                 # time_for_inference = self.data_utils.get_timer()
+                ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
             else:
                 ui_messages = f'You need to load a network before driving autonomously!'
                 steering_output, throttle_output = self.drive_manual()
@@ -286,7 +291,7 @@ class EngineApp(App):
         Returns
         -------
         steering_output: (int) inference-based steering output
-        throttle_output: (int) inference-based throttle output
+        throttle_output: (int) inference or driver-based throttle output
         """
         # Resize the image to be compatible with neural network
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
@@ -309,17 +314,21 @@ class EngineApp(App):
                                                          self.ui.steering_min,
                                                          self.ui.steering_max])
         self.arduino_board.Servos.write(STEERING_SERVO, rescaled_steering)
-        # @TODO For initial testing, I CONTROL THROTTLE!!
-        rescaled_throttle = self.data_utils.map_function(drive_inference[1],
-                                                         [0, 100,
-                                                         self.ui.throttle_min,
-                                                         self.ui.throttle_max])
-        # self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
-        throttle_output = self.arduino_board.throttleIn()
-        throttle_output = self.data_utils.chop_value(throttle_output,
-                                                     self.ui.throttle_min,
-                                                     self.ui.throttle_max)
-        self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+
+        # Now determine the throttle
+        if self.drive_mode == 'Steering Autonomous':
+            throttle_output = self.arduino_board.throttleIn()
+            rescaled_throttle = self.data_utils.chop_value(throttle_output,
+                                                           self.ui.throttle_min,
+                                                           self.ui.throttle_max)
+            self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+        else:
+            # Full Autonomous!!
+            rescaled_throttle = self.data_utils.map_function(drive_inference[1],
+                                                             [0, 100,
+                                                              self.ui.throttle_min,
+                                                              self.ui.throttle_max])
+            self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
 
         return int(rescaled_steering), int(rescaled_throttle)
 
