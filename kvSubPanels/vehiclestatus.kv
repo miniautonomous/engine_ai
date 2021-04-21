@@ -1,16 +1,17 @@
 #:kivy 1.10.0
 #
-# Description:
-#
-#
 # MIT License
 # Copyright (c) 2021 Mini Autonomous
 #
-#===================================================================================================
+# Description:
+#   This panel is needed to indicate if the vehicle is fully connected and disclose FPS of the main drive loop,
+#   inference and camera.
+#
 # create a new Kivy class "VehicleStatus" based on BoxLayout.
 # Note: Kivy classes MUST start with a capital.
+
 <VehicleStatus@BoxLayout>:
-  # Python properties
+  # Python access keys
   statusLight: kvStatusLight
   loopFps: kvLoopFps
   inferenceFps: kvInferenceFps
@@ -36,7 +37,7 @@
     text_size: self.size
 
   Label:
-    bgnColor: 0, 1, 0, 1
+    bgnColor: 0.7, 0.7, 0.7, 1
     canvas.before:
       Color:
         rgba: self.bgnColor

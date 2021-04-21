@@ -1,16 +1,16 @@
 #:kivy 1.10.0
 #
-# Description:
-#
-#
 # MIT License
 # Copyright (c) 2021 Mini Autonomous
 #
-#===================================================================================================
+# Description:
+#   This panel is used to power on the UI/vehicle and indicate in the current state of operation of the vehicle.
+#
 # create a new Kivy class "PowerCtrls" based on BoxLayout.
 # Note: Kivy classes MUST start with a capital.
+
 <PowerCtrls@BoxLayout>:
-  # Python properties
+  # Python access keys
   power: kvPowerButton
   manual: kvManualLabel
   ai_steering: kvAISteering
@@ -41,14 +41,12 @@
     color: 1, 1, 1, 1
     halign: 'center'
     valign: 'middle'
-    size_hint_x: None
-    width: 200
     markup: True
     text_size: self.size
 
   Label:
     id: kvManualLabel
-    bgnColor: 0, 1, 0, 1
+    bgnColor: 0.7, 0.7, 0.7, 1
     canvas.before:
       Color:
         rgba: self.bgnColor
@@ -57,24 +55,29 @@
         size: self.size
     text: ''
     size_hint_x: None
-    width: 40
     size_hint_y: None
+    width: 20
     height: 20
     pos_hint: {"center_x":0.5, "center_y":0.5}
+
+  Label:
+    text: ''
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
 
   Label:
     text: 'AI Steering'
     color: 1, 1, 1, 1
     halign: 'center'
     valign: 'middle'
-    size_hint_x: None
-    width: 200
     markup: True
     text_size: self.size
 
   Label:
     id: kvAISteering
-    bgnColor: 0, 1, 0, 1
+    bgnColor: 0.7, 0.7, 0.7, 1
     canvas.before:
       Color:
         rgba: self.bgnColor
@@ -83,24 +86,30 @@
         size: self.size
     text: ''
     size_hint_x: None
-    width: 40
     size_hint_y: None
+    width: 20
     height: 20
     pos_hint: {"center_x":0.5, "center_y":0.5}
+    text_size: self.size
+
+  Label:
+    text: ''
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
 
   Label:
     text: 'Full Autonomous'
     color: 1, 1, 1, 1
     halign: 'center'
     valign: 'middle'
-    size_hint_x: None
-    width: 200
     markup: True
     text_size: self.size
 
   Label:
     id: kvAIFull
-    bgnColor: 0, 1, 0, 1
+    bgnColor: 0.7, 0.7, 0.7, 1
     canvas.before:
       Color:
         rgba: self.bgnColor
@@ -109,24 +118,29 @@
         size: self.size
     text: ''
     size_hint_x: None
-    width: 40
     size_hint_y: None
+    width: 20
     height: 20
     pos_hint: {"center_x":0.5, "center_y":0.5}
+    text_size: self.size
+
+  Label:
+    text: ''
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
 
   Label:
     text: 'Recording'
     color: 1, 1, 1, 1
     halign: 'center'
     valign: 'middle'
-    size_hint_x: None
-    width: 200
-    markup: True
     text_size: self.size
 
   Label:
     id: kvRecording
-    bgnColor: 0, 1, 0, 1
+    bgnColor: 0.7, 0.7, 0.7, 1
     canvas.before:
       Color:
         rgba: self.bgnColor
@@ -135,10 +149,17 @@
         size: self.size
     text: ''
     size_hint_x: None
-    width: 40
     size_hint_y: None
+    width: 20
     height: 20
     pos_hint: {"center_x":0.5, "center_y":0.5}
+    text_size: self.size
+
+  Label:
+    text: ''
+    halign: 'center'
+    valign: 'middle'
+    text_size: self.size
 
   Image:
     #size_hint: 0.5, 0.3
@@ -147,4 +168,5 @@
     width: 80
     source: 'img/MiniAutonomous_DemoSmall.jpg'
     halign:'right'
+    text_size: self.size
 

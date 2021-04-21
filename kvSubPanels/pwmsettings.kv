@@ -1,14 +1,14 @@
 #:kivy 1.10.0
 #
-# Description:
-#
-#
 # MIT License
 # Copyright (c) 2021 Mini Autonomous
 #
-#===================================================================================================
+# Description:
+#   This panel is used to set PWM limits for steering and throttle.
+#
 # create a new Kivy class "PWMsettings" based on BoxLayout.
 # Note: Kivy classes MUST start with a capital.
+
 <PWMsettings@BoxLayout>:
   # Python properties
   # Customize some layout attributes
@@ -26,7 +26,6 @@
       # self here refers to the widget i.e BoxLayout
       pos: self.pos
       size: self.size
-
 
   Label:
     text: 'PWM Settings'
@@ -107,9 +106,6 @@
       #   orientation: 'horizontal'
       #   size_hint_x: None
       #   width: self.parent.size[0]*0.1
-
-
-
 
     BoxLayout:
       # Use to set the "row" background color
