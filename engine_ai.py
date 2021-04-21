@@ -203,7 +203,7 @@ class EngineApp(App):
             # Both steering and throttle are autonomous
             self.drive_mode = 'Full Autonomous'
         # Display mode
-        ui_messages = f', Mode: {self.drive_mode}={mode_pwm:3.0f}'
+        ui_messages = f'Mode: {self.drive_mode}={mode_pwm:3.0f}'
 
         # Are we recording?
         """
@@ -229,13 +229,12 @@ class EngineApp(App):
         else:
             # Check first if a network is loaded
             if self.net_loaded:
-                # self.data_utils.initiate_time()
                 steering_output, throttle_output = self.drive_autonomous()
-                # time_for_inference = self.data_utils.get_timer()
                 ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
             else:
-                ui_messages = f'You need to load a network before driving autonomously!'
+                # ui_messages = f'You need to load a network before driving autonomously!'
                 steering_output, throttle_output = self.drive_manual()
+                ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
 
         # Record data
         if self.record_on and self.log_folder_selected:
@@ -253,12 +252,17 @@ class EngineApp(App):
             self.stream_to_file.frame_index += 1
             # The vehicle is now recording
             self.previously_recording = True
+
+            # Update the UI
+            self.root.powerCtrls.recording.bgnColor = [0, 1, 0, 1]
         elif not self.record_on and self.previously_recording is True:
             # Close a file stream if one was open and the user requested it be closed
             self.stream_to_file.close_log_file()
             self.previously_recording = False
             # Reset the frame index to zero in case the user wants to restart recording
             self.stream_to_file.frame_index = 0
+            # Update the UI
+            self.root.powerCtrls.recording.bgnColor = [0.7, 0.7, 0.7, 1]
 
         # Send the message stream to the UI
         self.root.statusBar.lblStatusBar.text = ui_messages
@@ -286,6 +290,12 @@ class EngineApp(App):
                                                      self.ui.throttle_min,
                                                      self.ui.throttle_max)
         self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+
+        # Update UI
+        self.root.powerCtrls.manual.bgnColor = [0, 1, 0, 1]
+        self.root.powerCtrls.ai_steering.bgnColor = [0.7, 0.7, 0.7, 1]
+        self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
+
         return steering_output, throttle_output
 
     def drive_autonomous(self):
@@ -310,7 +320,7 @@ class EngineApp(App):
         else:
             drive_inference = self.model.predict(input_tensor)[0]
 
-        # Get the timing
+        # Get the inference rate
         delta_inference_fps = self.data_utils.get_timer()
         self.inference_loop_buffer_fps, fps_avg = self.data_utils.moving_avg(self.inference_loop_buffer_fps,
                                                                              1 / delta_inference_fps)
@@ -334,6 +344,11 @@ class EngineApp(App):
                                                            self.ui.throttle_min,
                                                            self.ui.throttle_max)
             self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
+
+            # Update UI
+            self.root.powerCtrls.manual.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.ai_steering.bgnColor = [0, 1, 0, 1]
+            self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
         else:
             # Full Autonomous!!
             rescaled_throttle = self.data_utils.map_function(drive_inference[1],
@@ -341,6 +356,11 @@ class EngineApp(App):
                                                               self.ui.throttle_min,
                                                               self.ui.throttle_max])
             self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
+
+            # Update UI
+            self.root.powerCtrls.manual.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.ai_steering.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.ai_full.bgnColor = [0, 1, 0, 1]
 
         return int(rescaled_steering), int(rescaled_throttle)
 
@@ -368,6 +388,13 @@ class EngineApp(App):
             # Close the log file if you are recording
             if self.record_on and self.log_folder_selected:
                 self.stream_to_file.close_log_file()
+
+            # Turn the vehicle status light to off
+            self.root.vehStatus.statusLight.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.manual.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.ai_steering.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
+            self.root.powerCtrls.recording.bgnColor = [0.7, 0.7, 0.7, 1]
 
         # Turn things ON
         else:
@@ -399,6 +426,9 @@ class EngineApp(App):
             if self.rs_is_on and self.board_available:
                 Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
                 self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+
+            # Turn the vehicle status light to on
+            self.root.vehStatus.statusLight.bgnColor = [0, 1, 0, 1]
 
     def select_model_file(self):
         """
