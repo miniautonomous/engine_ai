@@ -12,13 +12,15 @@
 <PowerCtrls@BoxLayout>:
   # Python properties
   power: kvPowerButton
-  manual: kvManualButton
-  ai: kvAiButton
-  loggins: kvLogginsButton
+  manual: kvManualLabel
+  ai_steering: kvAISteering
+  ai_full: kvAIFull
+  recording_status: kvRecording
+
   # Customize some layout attributes
   orientation: 'horizontal'
   size_hint_y: None
-  height: 40
+  height: 50
   size_hint_x: 1
   pos_hint: {'top': 1}
   padding: 2
@@ -34,32 +36,109 @@
     # call the method in the python app class, i.e.,
     on_press: app.start_drive()
 
-  Button:
-    id: kvManualButton
-    color: 1, 0, 0, 1
-    background_normal: ''
-    background_color: 0, 1, 0, 1
+  Label:
     text: 'Manual'
-    size_hint_x: 1
-    # call the method in the python app class, i.e.,
-    # on_press: app.manualOnOff()
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 200
+    markup: True
+    text_size: self.size
 
-  Button:
-    id: kvAiButton
-    background_normal: ''
-    background_color: 1, 0, 0, 1
-    text: 'AI'
-    size_hint_x: 1
-    # call the method in the python app class, i.e.,
-    # on_press: app.manualOnOff()
+  Label:
+    id: kvManualLabel
+    bgnColor: 0, 1, 0, 1
+    canvas.before:
+      Color:
+        rgba: self.bgnColor
+      Rectangle:
+        pos: self.pos
+        size: self.size
+    text: ''
+    size_hint_x: None
+    width: 40
+    size_hint_y: None
+    height: 20
+    pos_hint: {"center_x":0.5, "center_y":0.5}
 
-  Button:
-    id: kvLogginsButton
-    background_normal: ''
-    background_color: 0, 0, 1, 1
-    text: 'Loggins'
-    size_hint_x: 1
+  Label:
+    text: 'AI Steering'
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 200
+    markup: True
+    text_size: self.size
 
+  Label:
+    id: kvAISteering
+    bgnColor: 0, 1, 0, 1
+    canvas.before:
+      Color:
+        rgba: self.bgnColor
+      Rectangle:
+        pos: self.pos
+        size: self.size
+    text: ''
+    size_hint_x: None
+    width: 40
+    size_hint_y: None
+    height: 20
+    pos_hint: {"center_x":0.5, "center_y":0.5}
+
+  Label:
+    text: 'Full Autonomous'
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 200
+    markup: True
+    text_size: self.size
+
+  Label:
+    id: kvAIFull
+    bgnColor: 0, 1, 0, 1
+    canvas.before:
+      Color:
+        rgba: self.bgnColor
+      Rectangle:
+        pos: self.pos
+        size: self.size
+    text: ''
+    size_hint_x: None
+    width: 40
+    size_hint_y: None
+    height: 20
+    pos_hint: {"center_x":0.5, "center_y":0.5}
+
+  Label:
+    text: 'Recording'
+    color: 1, 1, 1, 1
+    halign: 'center'
+    valign: 'middle'
+    size_hint_x: None
+    width: 200
+    markup: True
+    text_size: self.size
+
+  Label:
+    id: kvRecording
+    bgnColor: 0, 1, 0, 1
+    canvas.before:
+      Color:
+        rgba: self.bgnColor
+      Rectangle:
+        pos: self.pos
+        size: self.size
+    text: ''
+    size_hint_x: None
+    width: 40
+    size_hint_y: None
+    height: 20
+    pos_hint: {"center_x":0.5, "center_y":0.5}
 
   Image:
     #size_hint: 0.5, 0.3

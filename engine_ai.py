@@ -54,6 +54,7 @@ class EngineApp(App):
         # Parameters
         self.rc_mode = None
         self.drive_loop_buffer_fps = None
+        self.inference_loop_buffer_fps = None
         self.camera_buffer_fps = None
         self.arduino_board = None
         self.file_IO = None
@@ -65,6 +66,7 @@ class EngineApp(App):
         self.drive_mode = 'Manual'
         self.data_utils = DataUtils()
         self.camera_real_rate = 0
+        self.inference_real_rate = 0
         self.recording_image_width = 0
         self.recording_image_height = 0
         self.nn_image_width = 0
@@ -122,6 +124,8 @@ class EngineApp(App):
         """
         self.drive_loop_buffer_fps = np.full(self.moving_avg_length,
                                              1 * int(self.rs_frame_rate))
+        self.inference_loop_buffer_fps = np.full(self.moving_avg_length,
+                                                 1 * int(self.rs_frame_rate))
         self.camera_buffer_fps = np.full(self.moving_avg_length,
                                          1 * int(self.rs_frame_rate))
 
@@ -305,6 +309,14 @@ class EngineApp(App):
             drive_inference = drive_inference['dense'][0].numpy()
         else:
             drive_inference = self.model.predict(input_tensor)[0]
+
+        # Get the timing
+        delta_inference_fps = self.data_utils.get_timer()
+        self.inference_loop_buffer_fps, fps_avg = self.data_utils.moving_avg(self.inference_loop_buffer_fps,
+                                                                             1 / delta_inference_fps)
+        self.inference_real_rate = round(fps_avg, 1)
+        # Post the timing to the UI
+        self.root.vehStatus.inferenceFps.text = f'Inference Loop (FPS): {self.inference_real_rate:3.0f}'
         """
             Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
             so we need to rescale these to the current PWM ranges.
