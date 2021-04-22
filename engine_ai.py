@@ -236,9 +236,8 @@ class EngineApp(App):
                 steering_output, throttle_output = self.drive_autonomous()
                 ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
             else:
-                # ui_messages = f'You need to load a network before driving autonomously!'
+                ui_messages = f'You need to load a network before driving autonomously!'
                 steering_output, throttle_output = self.drive_manual()
-                ui_messages += f', Steering: {steering_output}, Throttle: {throttle_output}'
 
         # Record data
         if self.record_on and self.log_folder_selected:
@@ -354,17 +353,12 @@ class EngineApp(App):
             self.root.powerCtrls.ai_steering.bgnColor = [0, 1, 0, 1]
             self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
         else:
-            # Full Autonomous!! Not yet, need to fix the PWM issue
-            throttle_output = self.arduino_board.throttleIn()
-            rescaled_throttle = self.data_utils.chop_value(throttle_output,
-                                                           self.ui.throttle_min,
-                                                           self.ui.throttle_max)
-            self.arduino_board.Servos.write(THROTTLE_SERVO, throttle_output)
-            # rescaled_throttle = self.data_utils.map_function(drive_inference[1],
-            #                                                  [0, 100,
-            #                                                   self.ui.throttle_min,
-            #                                                   self.ui.throttle_max])
-            # self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
+            # Full Autonomous!!
+            rescaled_throttle = self.data_utils.map_function(drive_inference[1],
+                                                             [0, 100,
+                                                              self.ui.throttle_min,
+                                                              self.ui.throttle_max])
+            self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
 
             # Update UI
             self.root.powerCtrls.manual.bgnColor = [0.7, 0.7, 0.7, 1]
