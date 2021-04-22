@@ -34,18 +34,21 @@ byte PWM_STEERING = 2;
 volatile int steerPWM = 0;
 volatile int steerPrevTime = 0;
 //
-// interrupt 3 => pin 20
-/* NOT currently used*/
+// interrupt 3 => pin 20, used for throttle+steering by DNN
+byte PWM_FULLAI = 3;
+volatile int fullaiPWM = 0;
+volatile int fullaiPrevTime = 0;
 //
 // interrupt 4 => pin 19 (Mode button)
 byte PWM_MODE = 4;
-volatile int recordPWM = 0;
-volatile int recordPrevTime = 0;
+volatile int modePWM = 0;
+volatile int modePrevTime = 0;
 //
 // interrupt 5 => pin 18, (Record button)
 byte PWM_REC = 5;
-volatile int modePWM = 0;
-volatile int modePrevTime = 0;
+volatile int recordPWM = 0;
+volatile int recordPrevTime = 0;
+
 
 void thrtlRising() {
   attachInterrupt(PWM_THROTTLE, thrtlFalling, FALLING);
@@ -57,7 +60,7 @@ void thrtlFalling() {
   thrtlPWM = micros()-thrtlPrevTime;
 }
 
- void getThrottlePWM() {
+void getThrottlePWM() {
   Serial.println(thrtlPWM);
 }
 
@@ -71,7 +74,7 @@ void steerFalling() {
   steerPWM = micros()-steerPrevTime;
 }
 
- void getSteeringPWM() {
+void getSteeringPWM() {
   Serial.println(steerPWM);
 }
 
@@ -85,7 +88,7 @@ void recordFalling() {
   recordPWM = micros()-recordPrevTime;
 }
 
- void getRecordPWM() {
+void getRecordPWM() {
   Serial.println(recordPWM);
 }
 
@@ -99,8 +102,22 @@ void modeFalling() {
   modePWM = micros()-modePrevTime;
 }
 
- void getModePWM() {
+void getModePWM() {
   Serial.println(modePWM);
+}
+
+void fullaiRising() {
+  attachInterrupt(PWM_FULLAI, fullaiFalling, FALLING);
+  fullaiPrevTime = micros();
+}
+
+void fullaiFalling() {
+  attachInterrupt(PWM_FULLAI, fullaiRising, RISING);
+  fullaiPWM = micros()-fullaiPrevTime;
+}
+
+void getFullAIPWM() {
+  Serial.println(fullaiPWM);
 }
 
 int Str2int (String Str_value)
@@ -272,6 +289,9 @@ void SerialParser(void) {
   else if (cmd == "rec") {
       getRecordPWM();
   }
+  else if (cmd == 'fullai'){
+      getFullAIPWM();
+  }
 }
 
 void setup()  {
@@ -280,6 +300,7 @@ void setup()  {
   attachInterrupt(PWM_THROTTLE, thrtlRising, RISING);
   attachInterrupt(PWM_MODE, modeRising, RISING);
   attachInterrupt(PWM_REC, recordRising, RISING);
+  attachInterrupt(PWM_FULLAI, fullaiRising, RISING);
   while (!Serial) {
   ; // wait for serial port to connect. Needed for Leonardo only
   }
