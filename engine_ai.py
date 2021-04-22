@@ -193,17 +193,21 @@ class EngineApp(App):
             We are using the four channel options (TQi4ch)
         """
         mode_pwm = self.arduino_board.modeIn()
+        full_ai_pwm = self.arduino_board.fullAIIn()
+
         # Set the vehicle to manual or autonomous
-        if mode_pwm < 1250:
+        if mode_pwm < 1500:
             self.drive_mode = 'Manual'
-        elif 1250 < mode_pwm < 1750:
-            # Steering is autonomous, but manual throttle
-            self.drive_mode = 'Steering Autonomous'
-        else:
-            # Both steering and throttle are autonomous
-            self.drive_mode = 'Full Autonomous'
+        elif mode_pwm > 1500:
+            if full_ai_pwm < 1500:
+                # Steering is autonomous, but manual throttle
+                self.drive_mode = 'Steering Autonomous'
+            else:
+                # Both steering and throttle are autonomous
+                self.drive_mode = 'Full Autonomous'
         # Display mode
         ui_messages = f'Mode: {self.drive_mode}={mode_pwm:3.0f}'
+        ui_messages += f', Full AI PWM = {full_ai_pwm: 3.0f}'
 
         # Are we recording?
         """
