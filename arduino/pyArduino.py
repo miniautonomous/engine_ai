@@ -184,7 +184,7 @@ class Arduino(object):
           * With 4 channels remote, this modeIn only has two PWMs, i.e., short and long, that is
             used to turn the autonomous mode on/off.
 
-        Reads a pulse on pin 18 (interrupt 5, hard coded in the Arduino sketch)
+        Reads a pulse on pin 19 (interrupt 4, hard coded in the Arduino sketch)
 
         returns:
            duration : pulse length measurement
@@ -207,12 +207,38 @@ class Arduino(object):
           * This method is ONLY used with 4 channels remotes.
           * The 2 PWMs length allows to turn the recording on/off with this 4th channels
 
-        Reads a pulse on pin 19 (interrupt 4, hard coded in the Arduino sketch)
+        Reads a pulse on pin 18 (interrupt 5, hard coded in the Arduino sketch)
 
         returns:
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("rec")
+        try:
+            self.sr.write(cmd_str)
+            self.sr.flush()
+        except:
+            pass
+        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
+        try:
+            return float(rd)
+        except:
+            return -1
+
+    def fullAIIn(self):
+        """
+        NOTES:
+          * With a 3 channels remotes, this modeIn can have 3 PWMs length, i.e., short, medium
+            and high.  These mode are use to scroll through the modes, Manual, autonomous and
+            recordings
+          * With 4 channels remote, this modeIn only has two PWMs, i.e., short and long, that is
+            used to turn the autonomous mode on/off.
+
+        Reads a pulse on pin 3 (interrupt 20, hard coded in the Arduino sketch)
+
+        returns:
+           duration : pulse length measurement
+        """
+        cmd_str = build_cmd_str("fullai")
         try:
             self.sr.write(cmd_str)
             self.sr.flush()
