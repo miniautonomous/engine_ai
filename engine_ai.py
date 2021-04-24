@@ -334,7 +334,7 @@ class EngineApp(App):
             Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
             so we need to rescale these to the current PWM ranges.
         """
-        rescaled_steering = self.data_utils.map_function(drive_inference[0],
+        rescaled_steering = self.data_utils.map_function(drive_inference[-1][0],
                                                          [-100, 100,
                                                          self.ui.steering_min,
                                                          self.ui.steering_max])
@@ -342,6 +342,7 @@ class EngineApp(App):
 
         # Now determine the throttle
         if self.drive_mode == 'Steering Autonomous':
+            # Throttle is manual
             throttle_output = self.arduino_board.throttleIn()
             rescaled_throttle = self.data_utils.chop_value(throttle_output,
                                                            self.ui.throttle_min,
@@ -353,8 +354,8 @@ class EngineApp(App):
             self.root.powerCtrls.ai_steering.bgnColor = [0, 1, 0, 1]
             self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
         else:
-            # Full Autonomous!!
-            rescaled_throttle = self.data_utils.map_function(drive_inference[1],
+            # Full Autonomous!! Throttle is AI determined!
+            rescaled_throttle = self.data_utils.map_function(drive_inference[-1][1],
                                                              [0, 100,
                                                               self.ui.throttle_min,
                                                               self.ui.throttle_max])
