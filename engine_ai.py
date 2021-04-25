@@ -314,7 +314,10 @@ class EngineApp(App):
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
 
         # Add it to the circular buffer for RNN processing
-        input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
+        if self.sequence_length == 1:
+            input_tensor = self.data_utils.get_buffer(new_image)
+        else:
+            input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
 
         # Do inference on the buffer of images
         if USE_TRT:
@@ -334,7 +337,7 @@ class EngineApp(App):
             Model produces inferences from -100 to 100 for steering and 0 to 100 for throttle,
             so we need to rescale these to the current PWM ranges.
         """
-        rescaled_steering = self.data_utils.map_function(drive_inference[-1][0],
+        rescaled_steering = self.data_utils.map_function(drive_inference[0],
                                                          [-100, 100,
                                                          self.ui.steering_min,
                                                          self.ui.steering_max])
@@ -355,7 +358,7 @@ class EngineApp(App):
             self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
         else:
             # Full Autonomous!! Throttle is AI determined!
-            rescaled_throttle = self.data_utils.map_function(drive_inference[-1][1],
+            rescaled_throttle = self.data_utils.map_function(drive_inference[1],
                                                              [0, 100,
                                                               self.ui.throttle_min,
                                                               self.ui.throttle_max])
@@ -469,19 +472,31 @@ class EngineApp(App):
             if USE_TRT:
                 self.model = tf.saved_model.load(self.file_IO.current_paths[0])
                 self.prediction = self.model.signatures['serving_default']
-
-                # Define the network input image dimensions from the model's input tensor
-                self.sequence_length = self.prediction.inputs[0].shape[1]
-                self.nn_image_height = self.prediction.inputs[0].shape[2]
-                self.nn_image_width = self.prediction.inputs[0].shape[3]
+                # We have a model with state memory (i.e. contains an LSTM, GRU, etc.)
+                if len(self.prediction.inputs[0].shape) == 5:
+                    # Define the network input image dimensions from the model's input tensor
+                    self.sequence_length = self.prediction.inputs[0].shape[1]
+                    self.nn_image_height = self.prediction.inputs[0].shape[2]
+                    self.nn_image_width = self.prediction.inputs[0].shape[3]
+                else:
+                    # Model requires no sequence
+                    self.sequence_length = 1
+                    self.nn_image_height = self.prediction.inputs[0].shape[1]
+                    self.nn_image_width = self.prediction.inputs[0].shape[2]
             else:
                 self.model = keras.models.load_model(self.file_IO.current_paths[0])
                 self.model.summary()
-
-                # Define the network input image dimensions from the model's input tensor
-                self.sequence_length = self.model.input.shape[1]
-                self.nn_image_height = self.model.input.shape[2]
-                self.nn_image_width = self.model.input.shape[3]
+                # We have a model with state memory (i.e. contains an LSTM, GRU, etc.)
+                if len(self.model.input.shape) == 5:
+                    # Define the network input image dimensions from the model's input tensor
+                    self.sequence_length = self.model.input.shape[1]
+                    self.nn_image_height = self.model.input.shape[2]
+                    self.nn_image_width = self.model.input.shape[3]
+                else:
+                    # Model requires no sequence
+                    self.sequence_length = 1
+                    self.nn_image_height = self.model.input.shape[1]
+                    self.nn_image_width = self.model.input.shape[2]
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \
