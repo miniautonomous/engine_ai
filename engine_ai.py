@@ -62,6 +62,7 @@ class EngineApp(App):
         self.model = None
         self.image_buffer = None
         self.prediction = None
+        self.inference_method = None
         self.car_name = "miniAutonomous"
         self.drive_mode = 'Manual'
         self.data_utils = DataUtils()
@@ -313,18 +314,8 @@ class EngineApp(App):
         # Resize the image to be compatible with neural network
         new_image = cv2.resize(self.ui.primary_image, (self.nn_image_width, self.nn_image_height))
 
-        # Add it to the circular buffer for RNN processing
-        if self.sequence_length == 1:
-            input_tensor = self.data_utils.get_buffer(new_image)
-        else:
-            input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
-
-        # Do inference on the buffer of images
-        if USE_TRT:
-            drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
-            drive_inference = drive_inference['dense'][0].numpy()
-        else:
-            drive_inference = self.model.predict(input_tensor)[0]
+        # Perform inference
+        drive_inference = self.inference_method(new_image)
 
         # Get the inference rate
         delta_inference_fps = self.data_utils.get_timer()
@@ -440,7 +431,6 @@ class EngineApp(App):
     def select_model_file(self):
         """
             Help the user select the model HDF5 or the directory to which to store data.
-
         """
         if USE_TRT:
             # Load a directory with the TensorRT parsed model
@@ -478,11 +468,13 @@ class EngineApp(App):
                     self.sequence_length = self.prediction.inputs[0].shape[1]
                     self.nn_image_height = self.prediction.inputs[0].shape[2]
                     self.nn_image_width = self.prediction.inputs[0].shape[3]
+                    self.inference_method = self.inference_with_sequences_tensor_rt
                 else:
                     # Model requires no sequence
                     self.sequence_length = 1
                     self.nn_image_height = self.prediction.inputs[0].shape[1]
                     self.nn_image_width = self.prediction.inputs[0].shape[2]
+                    self.inference_method = self.inference_stateless_tensor_rt
             else:
                 self.model = keras.models.load_model(self.file_IO.current_paths[0])
                 self.model.summary()
@@ -492,11 +484,13 @@ class EngineApp(App):
                     self.sequence_length = self.model.input.shape[1]
                     self.nn_image_height = self.model.input.shape[2]
                     self.nn_image_width = self.model.input.shape[3]
+                    self.inference_method = self.inference_with_sequences_keras
                 else:
                     # Model requires no sequence
                     self.sequence_length = 1
                     self.nn_image_height = self.model.input.shape[1]
                     self.nn_image_width = self.model.input.shape[2]
+                    self.inference_method = self.inference_stateless_keras
 
             # Create circular buffer for RNN network feed
             self.image_buffer = \
@@ -510,6 +504,75 @@ class EngineApp(App):
 
         except ValueError:
             print('Selected file is not compatible with Keras load.')
+
+    def inference_stateless_keras(self, new_image: np.ndarray) -> np.ndarray:
+        """
+            Perform inference with a model that has no memory. (i.e no LSTM, GRU, etc.)
+
+        Parameters
+        ----------
+        new_image: (np.ndarray) new image taken from camera
+
+        Returns
+        -------
+        drive_inference: (np.ndarray) output of model prediction
+        """
+        input_tensor = self.data_utils.get_buffer(new_image)
+        drive_inference = self.model.predict(input_tensor)[0]
+        return drive_inference
+
+    def inference_stateless_tensor_rt(self, new_image: np.ndarray) -> np.ndarray:
+        """
+            Perform inference with a model that has no memory. (i.e no LSTM, GRU, etc.)
+
+        Parameters
+        ----------
+        new_image: (np.ndarray) new image taken from camera
+
+        Returns
+        -------
+        drive_inference: (np.ndarray) output of model prediction
+        """
+        input_tensor = self.data_utils.get_buffer(new_image)
+
+        # Perform inference
+        drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
+        drive_inference = drive_inference['dense'][0].numpy()
+
+        return drive_inference
+
+    def inference_with_sequences_keras(self, new_image: np.ndarray) -> np.ndarray:
+        """
+            Perform inference with a model that has memory. (i.e has an LSTM, GRU, etc.)
+
+        Parameters
+        ----------
+        new_image: (np.ndarray) new image taken from camera
+
+        Returns
+        -------
+        drive_inference: (np.ndarray) output of model prediction
+        """
+        input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
+        drive_inference = self.model.predict(input_tensor)[0]
+        return drive_inference[-1]
+
+    def inference_with_sequences_tensor_rt(self, new_image: np.ndarray) -> np.ndarray:
+        """
+            Perform inference with a model that has memory. (i.e has an LSTM, GRU, etc.)
+
+        Parameters
+        ----------
+        new_image: (np.ndarray) new image taken from camera
+
+        Returns
+        -------
+        drive_inference: (np.ndarray) output of model prediction
+        """
+        input_tensor = np.expand_dims(self.data_utils.get_buffer(new_image), axis=0)
+        drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
+        drive_inference = drive_inference['dense'][0].numpy()
+        return drive_inference[-1]
 
     def select_log_folder(self):
         """"
