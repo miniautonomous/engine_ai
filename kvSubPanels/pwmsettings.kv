@@ -11,6 +11,11 @@
 
 <PWMsettings@BoxLayout>:
   # Python properties
+  pwmReadingThrottleMax: kvThrottleMax
+  pwmReadingThrottleMin: kvThrottleMin
+  pwmReadingSteeringMax: kvSteeringMax
+  pwmReadingSteeringMin: kvSteeringMin
+
   # Customize some layout attributes
   orientation: 'horizontal'
   size_hint_y: None
@@ -52,60 +57,20 @@
           # self here refers to the widget i.e BoxLayout
           pos: self.pos
           size: self.size
-      # BoxLayout:
-      #   # Empty box to occupy space on the right side of the main layout
-      #   orientation: 'horizontal'
-      #   size_hint_x: None
-      #   width: self.parent.size[0]*0.2
-      BoxLayout:
-        orientation: 'horizontal'
-        size_hint_x: None
-        width: 180
-        Label:
-          text: 'Throtttle Min:'
-          halign: 'center'
-          valign: 'middle'
-          text_size: self.size
-        TextInput:
-          # id: kvStartLearnRate
-          text: '1500'
-          multiline: False
-          # valign: 'middle'
-          halign: 'center'
-          text_size: self.size
-          # on_text_validate: app.updateCfgDictFromUI()
-          size_hint_x: None
-          width: 60
 
-      BoxLayout:
-        # Empty box to occupy space on the right side of the main layout
-        orientation: 'horizontal'
-        size_hint_x: None
-        width: self.parent.size[0]*0.2
-      BoxLayout:
-        orientation: 'horizontal'
-        size_hint_x: None
-        width: 180
-        Label:
-          text: 'Throtttle Max:'
-          halign: 'center'
-          valign: 'middle'
-          text_size: self.size
-        TextInput:
-          # id: kvStartLearnRate
-          text: '1500'
-          multiline: False
-          # valign: 'middle'
-          halign: 'center'
-          text_size: self.size
-          # on_text_validate: app.updateCfgDictFromUI()
-          size_hint_x: None
-          width: 60
-      # BoxLayout:
-      #   # Empty box to occupy space on the right side of the main layout
-      #   orientation: 'horizontal'
-      #   size_hint_x: None
-      #   width: self.parent.size[0]*0.1
+      Label:
+        id: kvThrottleMax
+        text: 'Throttle Max: 0'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
+
+      Label:
+        id: kvThrottleMin
+        text: 'Throttle Min: 0'
+        halign: 'center'
+        valign: 'middle'
+        text_size: self.size
 
     BoxLayout:
       # Use to set the "row" background color
@@ -117,14 +82,17 @@
           # self here refers to the widget i.e BoxLayout
           pos: self.pos
           size: self.size
+
       Label:
-        text: 'Steering Max: 1900'
+        id: kvSteeringMax
+        text: 'Steering Max: 0'
         halign: 'center'
         valign: 'middle'
         text_size: self.size
 
       Label:
-        text: 'Steering Min: 1200'
+        id: kvSteeringMin
+        text: 'Steering Min: 0'
         halign: 'center'
         valign: 'middle'
         text_size: self.size

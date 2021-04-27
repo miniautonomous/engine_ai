@@ -678,11 +678,25 @@ class EngineAppGUI(GridLayout):
         self.steering_neutral = 1500
         self.steering_min = 1000
         self.steering_max = 2000
+        # Update the UI
+        self.pwmSettings.pwmReadingSteeringMin.text = f'Steering Min: {self.steering_min:4.0f}'
+        self.pwmSettings.pwmReadingSteeringMax.text = f'Steering Max: {self.steering_max:4.0f}'
 
         # Throttle PWM settings
         self.throttle_neutral = 1500
-        self.throttle_min = 1000
-        self.throttle_max = 2000
+        self.throttle_min = 1400
+        self.throttle_max = 1600
+        """
+            PLEASE BE CAREFUL!:
+            We could have made the PWM settings adjustable from the UI, but the throttle limits
+            are very sensitive to the type of battery connected, the transmitter/receiver settings
+            and a whole range of other considerations specific to your build. If you want the vehicle
+            to travel faster, the conventional PWM limits for the channel are from 1000 to 2000,
+            but PLEASE, be cautious when adjusting the limits here. 
+        """
+        # Update the UI
+        self.pwmSettings.pwmReadingThrottleMin.text = f'Throttle Min: {self.throttle_min:4.0f}'
+        self.pwmSettings.pwmReadingThrottleMax.text = f'Throttle Max: {self.throttle_max:4.0f}'
 
         # Canvases default background to light blue
         self.ui_window.clear_color = ([.01, .2, .36, 1])
