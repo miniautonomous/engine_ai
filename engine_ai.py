@@ -534,11 +534,8 @@ class EngineApp(App):
         drive_inference: (np.ndarray) output of model prediction
         """
         input_tensor = self.data_utils.get_buffer(new_image)
-
-        # Perform inference
         drive_inference = self.prediction(tf.convert_to_tensor(input_tensor, dtype=tf.float32))
         drive_inference = drive_inference['dense'][0].numpy()
-
         return drive_inference
 
     def inference_with_sequences_keras(self, new_image: np.ndarray) -> np.ndarray:
