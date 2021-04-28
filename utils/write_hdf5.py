@@ -105,7 +105,7 @@ class StreamToHDF5(UserPath):
         finally:
             # Release the lock
             self.lock.release()
-            print('Threading has been stopped')
+            print('Thread lock released.')
 
     def create_new_file(self):
         """
