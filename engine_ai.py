@@ -1,3 +1,5 @@
+import time
+
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -105,15 +107,13 @@ class EngineApp(App):
         self.rs_frame_rate = 30
         # Set the desired rate of the drive loop
         self.drive_loop_rate = 30
-        if self.rs_frame_rate >= self.drive_loop_rate:
-            self.rs_frame_rate = self.drive_loop_rate
         # Number of channels of input image
         self.color_depth = 3
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.recording_image_width = 120
-        self.recording_image_height = 90
+        self.recording_image_width = 160
+        self.recording_image_height = 120
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -399,10 +399,12 @@ class EngineApp(App):
         # Turn things ON
         else:
             # Camera
-            self.rs_config.enable_stream(rs.stream.color,
-                                         self.ui.image_width,
-                                         self.ui.image_height,
-                                         rs.format.bgr8, int(self.rs_frame_rate))
+            self.rs_config.enable_stream(stream_type=rs.stream.color,
+                                         stream_index=0,
+                                         width=self.ui.image_width,
+                                         height=self.ui.image_height,
+                                         format=rs.format.bgr8,
+                                         framerate=int(self.rs_frame_rate))
             self.rs_pipeline.start(self.rs_config)
 
             # Get initial frame and confirm result
@@ -611,6 +613,7 @@ class EngineApp(App):
         self.ui.canvas.ask_update()
 
         # Compute the camera actual frame rate
+        time.sleep(1/self.rs_frame_rate)
         delta_fps = self.data_utils.get_timer()
         if delta_fps == 0:
             print('rsIntelDaq method: Imaged dropped')
