@@ -1,5 +1,3 @@
-import time
-
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -11,6 +9,7 @@ import cv2
 import numpy as np
 import tensorflow.keras as keras
 import tensorflow as tf
+import time
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.folder_functions import UserPath
