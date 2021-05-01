@@ -102,9 +102,11 @@ class EngineApp(App):
 
         """
         # Set camera related defaults
-        self.rs_frame_rate = 60
+        self.rs_frame_rate = 30
         # Set the desired rate of the drive loop
-        self.drive_loop_rate = 40
+        self.drive_loop_rate = 30
+        if self.rs_frame_rate >= self.drive_loop_rate:
+            self.rs_frame_rate = self.drive_loop_rate
         # Number of channels of input image
         self.color_depth = 3
         # Length of buffer reel (i.e. how many values are used in moving avg)
