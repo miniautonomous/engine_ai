@@ -103,7 +103,7 @@ class EngineApp(App):
 
         """
         # Set camera related defaults
-        self.rs_frame_rate = 30
+        self.rs_frame_rate = 200
         # Set the desired rate of the drive loop
         self.drive_loop_rate = 30
         # Number of channels of input image
@@ -111,8 +111,8 @@ class EngineApp(App):
         # Length of buffer reel (i.e. how many values are used in moving avg)
         self.moving_avg_length = 100
         # NN input parameters
-        self.recording_image_width = 160
-        self.recording_image_height = 120
+        self.recording_image_width = 120
+        self.recording_image_height = 90
         # For RNNs, define the sequence length
         self.sequence_length = 5
 
@@ -403,7 +403,7 @@ class EngineApp(App):
                                          width=self.ui.image_width,
                                          height=self.ui.image_height,
                                          format=rs.format.bgr8,
-                                         framerate=int(self.rs_frame_rate))
+                                         framerate=int(self.ui.prescribed_rs_rate))
             self.rs_pipeline.start(self.rs_config)
 
             # Get initial frame and confirm result
@@ -590,6 +590,8 @@ class EngineApp(App):
             Capture an image from a Intel Real Sense Camera
         """
         self.data_utils.initiate_time()
+        # Slow the frame grab rate down a bit to not overwhelm the compute module
+        time.sleep(1/self.rs_frame_rate)
         # Process a frame
         frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
@@ -612,7 +614,6 @@ class EngineApp(App):
         self.ui.canvas.ask_update()
 
         # Compute the camera actual frame rate
-        time.sleep(1/self.rs_frame_rate)
         delta_fps = self.data_utils.get_timer()
         if delta_fps == 0:
             print('rsIntelDaq method: Imaged dropped')
@@ -677,6 +678,7 @@ class EngineAppGUI(GridLayout):
         # Set VGA resolution for the camera output window
         self.image_width = 320
         self.image_height = 240
+        self.prescribed_rs_rate = 30
 
         # Steering PWM settings, (done here to display to the user)
         self.steering_neutral = 1500
