@@ -590,7 +590,15 @@ class EngineApp(App):
             Capture an image from a Intel Real Sense Camera
         """
         self.data_utils.initiate_time()
-        # Slow the frame grab rate down a bit to not overwhelm the compute module
+
+        # Slow the frame grab rate down
+        """
+            Note:
+            The RealSense camera has issues running at a specified frame rates when the 
+            resolution is run below VGA and it is important to slow the primary drive loop
+            to not allow the frame rate of the camera to overwhelm the onboard compute,
+            so an explicit pause is inserted here.
+        """
         time.sleep(1/self.rs_frame_rate)
         # Process a frame
         frames = self.rs_pipeline.wait_for_frames()
