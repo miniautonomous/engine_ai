@@ -64,6 +64,7 @@ class EngineApp(App):
         self.image_buffer = None
         self.prediction = None
         self.inference_method = None
+        self.get_frame = None
         self.car_name = "miniAutonomous"
         self.drive_mode = 'Manual'
         self.data_utils = DataUtils()
@@ -75,14 +76,20 @@ class EngineApp(App):
         self.nn_image_height = 0
         self.sequence_length = 0
 
+        # Use webcam or realsense camera
+        self.use_webcam = True
+
         # RealSense camera pipeline
         self.rs_pipeline = rs.pipeline()
         self.rs_config = rs.config()
+        self.rs_is_on = False
+
+        # Webcam option
+        self.webcam_feed = None
+        self.webcam_on = False
 
         # Arduino connected?
         self.board_available = False
-        # Camera on?
-        self.rs_is_on = False
         # Are we recording?
         self.record_on = False
         # Net loaded?
@@ -374,11 +381,15 @@ class EngineApp(App):
             self.root.powerCtrls.power.text = 'Power OFF'
 
             # Camera
-            if self.rs_is_on:
-                try:
-                    self.rs_pipeline.stop()
-                except ValueError:
-                    pass
+            if self.use_webcam:
+                self.webcam_feed.release()
+                self.webcam_on = False
+            else:
+                if self.rs_is_on:
+                    try:
+                        self.rs_pipeline.stop()
+                    except ValueError:
+                        pass
 
             # Arduino
             if self.board_available:
@@ -398,21 +409,33 @@ class EngineApp(App):
         # Turn things ON
         else:
             # Camera
-            self.rs_config.enable_stream(stream_type=rs.stream.color,
-                                         stream_index=0,
-                                         width=self.ui.image_width,
-                                         height=self.ui.image_height,
-                                         format=rs.format.bgr8,
-                                         framerate=int(self.ui.prescribed_rs_rate))
-            self.rs_pipeline.start(self.rs_config)
-
-            # Get initial frame and confirm result
-            frames = self.rs_pipeline.wait_for_frames()
-            color_frame = frames.get_color_frame()
-            if not color_frame:
-                self.rs_is_on = False
+            if self.use_webcam:
+                self.webcam_feed = cv2.VideoCapture(0)
+                self.webcam_feed.set(cv2.CAP_PROP_FPS, int(self.ui.prescribed_rs_rate))
+                self.webcam_feed.set(cv2.CAP_PROP_FRAME_WIDTH, self.ui.image_width)
+                self.webcam_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, self.ui.image_height)
+                self.get_frame = self.get_frame_from_webcam
+                # Get initial frame and confirm result
+                if self.webcam_feed.isOpened():
+                    self.webcam_on, _ = self.webcam_feed.read()
+                else:
+                    self.webcam_on = False
             else:
-                self.rs_is_on = True
+                self.rs_config.enable_stream(stream_type=rs.stream.color,
+                                             stream_index=0,
+                                             width=self.ui.image_width,
+                                             height=self.ui.image_height,
+                                             format=rs.format.bgr8,
+                                             framerate=int(self.ui.prescribed_rs_rate))
+                self.rs_pipeline.start(self.rs_config)
+                # Get initial frame and confirm result
+                frames = self.rs_pipeline.wait_for_frames()
+                color_frame = frames.get_color_frame()
+                if not color_frame:
+                    self.rs_is_on = False
+                else:
+                    self.rs_is_on = True
+                self.get_frame = self.get_frame_from_rs
 
             # Start the Arduino
             if not self.board_available:
@@ -424,9 +447,10 @@ class EngineApp(App):
                 (what user gets) frequency.
             """
             # Schedule and start the drive loop
-            if self.rs_is_on and self.board_available:
-                Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
-                self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
+            if self.rs_is_on or self.webcam_on:
+                if self.board_available:
+                    Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
+                    self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
 
             # Turn the vehicle status light to on
             self.root.vehStatus.statusLight.bgnColor = [0, 1, 0, 1]
@@ -585,6 +609,48 @@ class EngineApp(App):
         self.ui.fileDiag.lblLogFolderPath.text = '  ' + self.stream_to_file.user_data_folder
         self.log_folder_selected = True
 
+    def get_frame_from_webcam(self):
+        """
+            Get the image frame from the webcam
+
+        Returns
+        -------
+        image: (np.ndarray) numpy array from webcam
+        """
+        self.webcam_on, image = self.webcam_feed.read()
+        if not image:
+            self.webcam_on = False
+
+        # Take the image and make it visible in the UI and accessible to all methods
+        self.ui.primary_image = image
+
+        # Process from openCV to np image rendering format
+        image = np.flipud(image)
+        # Switch from BGR to RGB
+        image = image[:, :, [2, 1, 0]]
+        return image
+
+    def get_frame_from_rs(self):
+        """
+            Get the image from the RealSense camera
+
+        Returns
+        ---
+        image: (np.ndarray) numpy array from the RealSense
+        """
+        frames = self.rs_pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        if not color_frame:
+            self.rs_is_on = False
+
+        # Take the image and make it visible in the UI and accessible to all methods
+        self.ui.primary_image = np.asanyarray(color_frame.get_data())
+
+        # Process it for display
+        rs_image = np.flipud(self.ui.primary_image)
+        rs_image = rs_image[:, :, [2, 1, 0]]
+        return rs_image
+
     def run_camera(self):
         """
             Capture an image from a Intel Real Sense Camera
@@ -601,17 +667,8 @@ class EngineApp(App):
         """
         time.sleep(1/self.rs_frame_rate)
         # Process a frame
-        frames = self.rs_pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        if not color_frame:
-            self.rs_is_on = False
+        display_image = self.get_frame()
 
-        # Take the image and make it visible in the UI and accessible to all methods
-        self.ui.primary_image = np.asanyarray(color_frame.get_data())
-
-        # Process it for display
-        display_image = np.flipud(self.ui.primary_image)
-        display_image = display_image[:, :, [2, 1, 0]]
         # Update the UI texture to display the image to the user
         self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
                                                                 self.ui.image_width_factor))
