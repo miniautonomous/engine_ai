@@ -410,10 +410,13 @@ class EngineApp(App):
         else:
             # Camera
             if self.use_webcam:
-                self.webcam_feed = cv2.VideoCapture(0)
-                self.webcam_feed.set(cv2.CAP_PROP_FPS, int(self.ui.prescribed_rs_rate))
+                self.webcam_feed = cv2.VideoCapture(3)
+                self.webcam_feed.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y', 'U', 'Y', 'V'))
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_WIDTH, self.ui.image_width)
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, self.ui.image_height)
+                self.webcam_feed.set(cv2.CAP_PROP_FPS, int(self.ui.prescribed_rs_rate))
+                self.webcam_feed.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                print(cv2.CAP_PROP_BUFFERSIZE)
                 self.get_frame = self.get_frame_from_webcam
                 # Get initial frame and confirm result
                 if self.webcam_feed.isOpened():
@@ -618,7 +621,7 @@ class EngineApp(App):
         image: (np.ndarray) numpy array from webcam
         """
         self.webcam_on, image = self.webcam_feed.read()
-        if not image:
+        if image is None:
             self.webcam_on = False
 
         # Take the image and make it visible in the UI and accessible to all methods
@@ -665,7 +668,7 @@ class EngineApp(App):
             to not allow the frame rate of the camera to overwhelm the onboard compute,
             so an explicit pause is inserted here.
         """
-        time.sleep(1/self.rs_frame_rate)
+        # time.sleep(1/self.rs_frame_rate)
         # Process a frame
         display_image = self.get_frame()
 
@@ -741,7 +744,7 @@ class EngineAppGUI(GridLayout):
         self.image_width_factor = 1
 
         # Set VGA resolution for the camera output window
-        self.image_width = 320
+        self.image_width = 432
         self.image_height = 240
         self.prescribed_rs_rate = 30
 
