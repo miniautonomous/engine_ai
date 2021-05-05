@@ -410,7 +410,7 @@ class EngineApp(App):
         else:
             # Camera
             if self.use_webcam:
-                self.webcam_feed = cv2.VideoCapture(3)
+                self.webcam_feed = cv2.VideoCapture(0)
                 self.webcam_feed.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y', 'U', 'Y', 'V'))
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_WIDTH, self.ui.image_width)
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, self.ui.image_height)
