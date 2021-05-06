@@ -743,9 +743,14 @@ class EngineAppGUI(GridLayout):
         self.primary_image = []
         self.image_width_factor = 1
 
-        # Set VGA resolution for the camera output window
-        self.image_width = 432
-        self.image_height = 240
+        # Set specific resolutions for webcam vs RealSense camera
+        if self.app.use_webcam:
+            self.image_width = 432
+            self.image_height = 240
+        else:
+            self.image_width = 320
+            self.image_height = 240
+        # Set the desired frame rate at 30
         self.prescribed_rs_rate = 30
 
         # Steering PWM settings, (done here to display to the user)
