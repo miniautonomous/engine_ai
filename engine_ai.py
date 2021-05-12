@@ -77,7 +77,7 @@ class EngineApp(App):
         self.sequence_length = 0
 
         # Use webcam or realsense camera
-        self.use_webcam = True
+        self.use_webcam = False
 
         # RealSense camera pipeline
         self.rs_pipeline = rs.pipeline()
@@ -109,8 +109,6 @@ class EngineApp(App):
             Set default values for various numeric parameters.
 
         """
-        # Set camera related defaults
-        self.rs_frame_rate = 200
         # Set the desired rate of the drive loop
         self.drive_loop_rate = 30
         # Number of channels of input image
@@ -125,6 +123,7 @@ class EngineApp(App):
 
         # Creation of buffer arrays
         """
+            Please Note:
             These two buffers help provide a moving average of the frame rate
             at which the overall framework operates, (input image -> inference -> output command),
             and that at which the camera is operating, (basic FPS of camera). 
@@ -132,20 +131,20 @@ class EngineApp(App):
             at an optimal rate, which should be close to realtime, (~30 fps).
         """
         self.drive_loop_buffer_fps = np.full(self.moving_avg_length,
-                                             1 * int(self.rs_frame_rate))
+                                             1 * int(self.ui.prescribed_rs_rate))
         self.inference_loop_buffer_fps = np.full(self.moving_avg_length,
-                                                 1 * int(self.rs_frame_rate))
+                                                 1 * int(self.ui.prescribed_rs_rate))
         self.camera_buffer_fps = np.full(self.moving_avg_length,
-                                         1 * int(self.rs_frame_rate))
+                                         1 * int(self.ui.prescribed_rs_rate))
 
     def build(self):
         """
           This is the first method that Kivy calls to build the GUI.
 
           Please note:
-           (i) User input for loading a file is tracked via 'file_IO' to keep a history
-               of the prior use of the app and use those selections as the default
-               selections for the current instance
+          (i) User input for loading a file is tracked via 'file_IO' to keep a history
+              of the prior use of the app and use those selections as the default
+              selections for the current instance
 
           (ii) The main app class and the GUI class pass references of themselves to each
                other to facilitate exchange of parameters.
@@ -199,7 +198,7 @@ class EngineApp(App):
 
         # Check the desired mode
         """
-            We are using the four channel options (TQi4ch)
+            We are using the five channel options (TQi4ch)
         """
         mode_pwm = self.arduino_board.modeIn()
         full_ai_pwm = self.arduino_board.fullAIIn()
@@ -220,7 +219,8 @@ class EngineApp(App):
 
         # Are we recording?
         """
-            NOTE: Here we are using a four channel transmitter/receiver,
+            Please note: 
+            Here we are using a five channel transmitter/receiver,
             so the option to record from the camera has been separated from
             the drive mode. You can therefore record to create training
             data, (manual driving), or you can record to show the vehicle
@@ -411,12 +411,9 @@ class EngineApp(App):
             # Camera
             if self.use_webcam:
                 self.webcam_feed = cv2.VideoCapture(0)
-                self.webcam_feed.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y', 'U', 'Y', 'V'))
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_WIDTH, self.ui.image_width)
                 self.webcam_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, self.ui.image_height)
                 self.webcam_feed.set(cv2.CAP_PROP_FPS, int(self.ui.prescribed_rs_rate))
-                self.webcam_feed.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                print(cv2.CAP_PROP_BUFFERSIZE)
                 self.get_frame = self.get_frame_from_webcam
                 # Get initial frame and confirm result
                 if self.webcam_feed.isOpened():
@@ -430,7 +427,27 @@ class EngineApp(App):
                                              height=self.ui.image_height,
                                              format=rs.format.bgr8,
                                              framerate=int(self.ui.prescribed_rs_rate))
-                self.rs_pipeline.start(self.rs_config)
+                # self.rs_pipeline.start(self.rs_config)
+                profile = self.rs_pipeline.start(self.rs_config)
+
+                # Set auto exposure feature
+                """
+                    Please note: 
+                    On the Intel RealSense, we can control the auto exposure feature of the camera. 
+                    This is a very tricky feature to deal with since turning off the auto exposure will boost
+                    the frame rate of the camera, which in turn may boost the main drive loop rate, but 
+                    depending on lighting, this may lead to inconsistent image quality and issues with inference.
+                    The important things is that if you set the 'enable_auto_exposure' to False and then comment 
+                    this line out, the camera will remember that this was set off the next time you use it, so it
+                    is important to set it to True to re-enable. 
+                """
+                # Grab the sensor of the RGB camera
+                # sensor = profile.get_device().query_sensors()[1]
+                # Turn it on
+                # sensor.set_option(rs.option.enable_auto_exposure, True)
+                # Turn it off
+                # sensor.set_option(rs.option.enable_auto_exposure, False)
+
                 # Get initial frame and confirm result
                 frames = self.rs_pipeline.wait_for_frames()
                 color_frame = frames.get_color_frame()
@@ -445,7 +462,8 @@ class EngineApp(App):
                 self.start_arduino()
 
             """
-                NOTE: This is the call that kicks off the primary drive loop
+                Please note:
+                This is the call that kicks off the primary drive loop
                 and schedules it at a desired (what user wants) but not actual
                 (what user gets) frequency.
             """
@@ -660,21 +678,13 @@ class EngineApp(App):
         """
         self.data_utils.initiate_time()
 
-        # Slow the frame grab rate down
-        """
-            Note:
-            The RealSense camera has issues running at a specified frame rates when the 
-            resolution is run below VGA and it is important to slow the primary drive loop
-            to not allow the frame rate of the camera to overwhelm the onboard compute,
-            so an explicit pause is inserted here.
-        """
-        # time.sleep(1/self.rs_frame_rate)
         # Process a frame
         display_image = self.get_frame()
 
         # Update the UI texture to display the image to the user
         self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
-                                                                self.ui.image_width_factor))
+                                                                self.ui.image_width_factor),
+                                          bufferfmt='ubyte')
         """
             This next command is required ot have the image refreshed and it refers to the
             canvas "camctrls.kv" file found in kvSubPanels.
@@ -750,8 +760,13 @@ class EngineAppGUI(GridLayout):
         else:
             self.image_width = 320
             self.image_height = 240
-        # Set the desired frame rate at 30
-        self.prescribed_rs_rate = 30
+        # Set the desired frame rate at 60
+        """
+            Please note:
+            This is the prescribed (i.e. desired) frame rate, so one is not
+            guaranteed to actually get 60 frames for the sensor. 
+        """
+        self.prescribed_rs_rate = 60
 
         # Steering PWM settings, (done here to display to the user)
         self.steering_neutral = 1500
