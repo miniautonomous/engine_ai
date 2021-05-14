@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 import tensorflow.keras as keras
 import tensorflow as tf
-import time
 
 # Custom module for miscellaneous utility classes to support a GUI.
 from utils.folder_functions import UserPath
@@ -149,7 +148,7 @@ class EngineApp(App):
           (ii) The main app class and the GUI class pass references of themselves to each
                other to facilitate exchange of parameters.
         """
-        self.title = 'EngineAppGUI (ver0.0r210303)'
+        self.title = 'EngineAppGUI'
         self.icon = 'img/logoTitleBarV2_32x32.png'
         self.file_IO = UserPath('EngineApp.py')
         self.ui = EngineAppGUI(self)                                                                                    # noqa
