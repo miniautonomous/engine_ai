@@ -130,11 +130,11 @@ class EngineApp(App):
             at an optimal rate, which should be close to realtime, (~30 fps).
         """
         self.drive_loop_buffer_fps = np.full(self.moving_avg_length,
-                                             1 * int(self.ui.prescribed_rs_rate))
+                                             1 * int(self.drive_loop_rate))
         self.inference_loop_buffer_fps = np.full(self.moving_avg_length,
-                                                 1 * int(self.ui.prescribed_rs_rate))
+                                                 1 * int(self.drive_loop_rate))
         self.camera_buffer_fps = np.full(self.moving_avg_length,
-                                         1 * int(self.ui.prescribed_rs_rate))
+                                         1 * int(self.drive_loop_rate))
 
     def build(self):
         """
