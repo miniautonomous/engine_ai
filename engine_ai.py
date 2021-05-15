@@ -16,8 +16,11 @@ from utils.write_hdf5 import StreamToHDF5
 from utils.data_functions import DataUtils
 from arduino.pyArduino import Arduino
 
-# Camera related imports
-import pyrealsense2 as rs
+# Are we using the RealSense API? If not, OpenCV webcam API
+try:
+    import pyrealsense2 as rs
+except ImportError:
+    rs = None
 
 # Servo Pin Numbers
 STEERING_SERVO = 9
@@ -79,8 +82,12 @@ class EngineApp(App):
         self.use_webcam = False
 
         # RealSense camera pipeline
-        self.rs_pipeline = rs.pipeline()
-        self.rs_config = rs.config()
+        if rs is not None:
+            self.rs_pipeline = rs.pipeline()
+            self.rs_config = rs.config()
+        else:
+            self.rs_pipeline = None
+            self.rs_config = None
         self.rs_is_on = False
 
         # Webcam option
@@ -640,15 +647,16 @@ class EngineApp(App):
         self.webcam_on, image = self.webcam_feed.read()
         if image is None:
             self.webcam_on = False
+            return None
+        else:
+            # Take the image and make it visible in the UI and accessible to all methods
+            self.ui.primary_image = image
 
-        # Take the image and make it visible in the UI and accessible to all methods
-        self.ui.primary_image = image
-
-        # Process from openCV to np image rendering format
-        image = np.flipud(image)
-        # Switch from BGR to RGB
-        image = image[:, :, [2, 1, 0]]
-        return image
+            # Process from openCV to np image rendering format
+            image = np.flipud(image)
+            # Switch from BGR to RGB
+            image = image[:, :, [2, 1, 0]]
+            return image
 
     def get_frame_from_rs(self):
         """
@@ -660,16 +668,17 @@ class EngineApp(App):
         """
         frames = self.rs_pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
-        if not color_frame:
+        if color_frame is None:
             self.rs_is_on = False
+            return None
+        else:
+            # Take the image and make it visible in the UI and accessible to all methods
+            self.ui.primary_image = np.asanyarray(color_frame.get_data())
 
-        # Take the image and make it visible in the UI and accessible to all methods
-        self.ui.primary_image = np.asanyarray(color_frame.get_data())
-
-        # Process it for display
-        rs_image = np.flipud(self.ui.primary_image)
-        rs_image = rs_image[:, :, [2, 1, 0]]
-        return rs_image
+            # Process it for display
+            rs_image = np.flipud(self.ui.primary_image)
+            rs_image = rs_image[:, :, [2, 1, 0]]
+            return rs_image
 
     def run_camera(self):
         """
@@ -681,14 +690,15 @@ class EngineApp(App):
         display_image = self.get_frame()
 
         # Update the UI texture to display the image to the user
-        self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
-                                                                self.ui.image_width_factor),
-                                          bufferfmt='ubyte')
-        """
-            This next command is required ot have the image refreshed and it refers to the
-            canvas "camctrls.kv" file found in kvSubPanels.
-        """
-        self.ui.canvas.ask_update()
+        if display_image is not None:
+            self.ui.image_texture.blit_buffer(display_image.reshape(self.ui.image_number_pixels *
+                                                                    self.ui.image_width_factor),
+                                              bufferfmt='ubyte')
+            """
+                This next command is required ot have the image refreshed and it refers to the
+                canvas "camctrls.kv" file found in kvSubPanels.
+            """
+            self.ui.canvas.ask_update()
 
         # Compute the camera actual frame rate
         delta_fps = self.data_utils.get_timer()

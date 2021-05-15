@@ -1,0 +1,8 @@
+tkfilebrowser==2.3.2
+Kivy==2.0.0
+h5py==2.10.0
+opencv_python==4.5.1.48
+pyrealsense2==2.42.0.2924
+numpy==1.19.2
+tensorflow==2.3.1
+pyserial==3.5

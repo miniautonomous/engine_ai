@@ -289,7 +289,7 @@ void SerialParser(void) {
   else if (cmd == "rec") {
       getRecordPWM();
   }
-  else if (cmd == 'fullai'){
+  else if (cmd == "fullai"){
       getFullAIPWM();
   }
 }
