@@ -14,7 +14,7 @@ import tensorflow as tf
 from utils.folder_functions import UserPath
 from utils.write_hdf5 import StreamToHDF5
 from utils.data_functions import DataUtils
-from arduino.pyArduino import Arduino
+from arduino.python_arduino import Arduino
 
 # Are we using the RealSense API? If not, OpenCV webcam API
 try:
