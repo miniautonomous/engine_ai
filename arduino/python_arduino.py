@@ -21,9 +21,7 @@ log = logging.getLogger(__name__)
     unused/needed function and implementing interrupt request to read PWM since the easy
     to use Arduino pulseIn function was giving all kind of problems, see wiki.
 
-    Author:   Francois Charette, Ph.D.
-    Created:  February 21, 2020
-    Modified: April 28, 2021 (Jose Solomon)
+    Original author of arduino-python3:   Morten Kals
 """
 
 
