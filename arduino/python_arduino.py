@@ -255,7 +255,6 @@ class Servos(object):
     Class for Arduino servo support
     0.03 second delay noted
     """
-
     def __init__(self, board):
         self.board = board
         self.sr = board.sr
