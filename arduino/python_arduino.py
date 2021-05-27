@@ -1,14 +1,3 @@
-"""
-  Decription:
-    This is an optimized version of the package (pip install arduino-python3).
-    It was optimized specifically for the miniAV control interface by removing for all
-    unused/needed function and implementing interrupt request to read PWM since the easy
-    to use Arduino pulseIn function was giving all kind of problems, see wiki.
-
-    Author:   Francois Charette, Ph.D.
-    Created:  February 21, 2020
-    Modified: ...
-"""
 import logging
 import itertools
 import platform
@@ -16,6 +5,7 @@ import serial
 import time
 from serial.tools import list_ports
 
+# Check if running on Windows OS
 if platform.system() == 'Windows':
     import winreg as winreg
 else:
@@ -23,22 +13,34 @@ else:
 
 log = logging.getLogger(__name__)
 
+"""
+  Description:
+
+    This is an optimized version of the package (pip install arduino-python3).
+    It was optimized specifically for the miniAV control interface by removing for all
+    unused/needed function and implementing interrupt request to read PWM since the easy
+    to use Arduino pulseIn function was giving all kind of problems, see wiki.
+
+    Author:   Francois Charette, Ph.D.
+    Created:  February 21, 2020
+    Modified: April 28, 2021 (Jose Solomon)
+"""
+
 
 def enumerate_serial_ports():
     """
     Uses the Win32 registry to return a iterator of serial
-        (COM) ports existing on this computer.
+    (COM) ports existing on this computer.
     """
     path = 'HARDWARE\\DEVICEMAP\\SERIALCOMM'
     try:
         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path)
     except WindowsError:
         raise Exception
-
     for i in itertools.count():
         try:
             val = winreg.EnumValue(key, i)
-            yield (str(val[1]))  # , str(val[0]))
+            yield str(val[1])
         except EnvironmentError:
             break
 
@@ -47,11 +49,14 @@ def build_cmd_str(cmd, args=None):
     """
     Build a command string that can be sent to the arduino.
 
-    Input:
-        cmd (str): the command to send to the arduino, must not
-            contain a % character
-        args (iterable): the arguments to send to the command
+    Parameters
+    ----------
+    cmd: (str) the command to send to the arduino, must not contain a % character
+    args: (iterable) the arguments to send to the command
 
+    Returns
+    -------
+    command_string: (string) parsed command string
     @TODO: a strategy is needed to escape % characters in the args
     """
     if args:
@@ -76,25 +81,23 @@ def find_port(baud, timeout):
         log.debug('Found {0}, testing...'.format(p))
         try:
             sr = serial.Serial(p, baud, timeout=timeout)
-            # sr.setDTR(False)
-            # time.sleep(1)
-            # sr.flushInput()
-            # sr.setDTR(True)
         except serial.serialutil.SerialException as e:
             log.debug(str(e))
             continue
         time.sleep(2)
         version = get_version(sr).decode()
-        # For some reason, if the Arduino MEGA gets interrupted by using the keyboard
-        # then the get_version function will return a numerical string, as if the sketch
-        # is still running.
-        # If there is nothing connected on the serial port, then get_version returns an
-        # empty string.  There to ensure that we are connected to an Arduino, simply
-        # if there is an empty string or not.  This is probably less robust than checking
-        # specifically for the keyword "version" that gaurantees the right sketch is
-        # running, but it is more robust in the sense to re-start an Arduino connection
+        """
+            Note:
+            For some reason, if the Arduino MEGA gets interrupted by using the keyboard
+            then the get_version function will return a numerical string, as if the sketch
+            is still running.
+            If there is nothing connected on the serial port, then get_version returns an
+            empty string.  There to ensure that we are connected to an Arduino, simply
+            if there is an empty string or not.  This is probably less robust than checking
+            specifically for the keyword "version" that guarantees the right sketch is
+            running, but it is more robust in the sense to re-start an Arduino connection
+        """
         if not version:
-            # if version != 'version':
             log.debug('Bad version {0}. This is not a Shrimp/Arduino!'.format(
                 version))
             sr.close()
@@ -116,7 +119,6 @@ def get_version(sr):
 
 
 class Arduino(object):
-
     def __init__(self, baud=9600, port=None, timeout=2, sr=None):
         """
         Initializes serial communication with Arduino if no connection is
@@ -137,7 +139,30 @@ class Arduino(object):
     def version(self):
         return get_version(self.sr)
 
-    def steerIn(self):
+    def process_command_string(self, command_string: str) -> float:
+        """
+            Process a command string.
+
+        Parameters
+        ----------
+        command_string: (str) raw command string
+
+        Returns
+        -------
+        parsed_command: (float) parsed command
+        """
+        try:
+            self.sr.write(command_string)
+            self.sr.flush()
+        except ValueError:
+            pass
+        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
+        try:
+            return float(rd)
+        except ValueError:
+            return -1
+
+    def steer_in(self):
         """
         Reads a pulse on pin 21 (interrupt 2, hard coded in the Arduino sketch)
 
@@ -145,18 +170,9 @@ class Arduino(object):
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("strg")
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        return self.process_command_string(cmd_str)
 
-    def throttleIn(self):
+    def throttle_in(self):
         """
         Reads a pulse on pin 2 (interrupt 0, hard coded in the Arduino sketch)
 
@@ -164,18 +180,9 @@ class Arduino(object):
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("thrtl")
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        return self.process_command_string(cmd_str)
 
-    def modeIn(self):
+    def mode_in(self):
         """
         NOTES:
           * With a 3 channels remotes, this modeIn can have 3 PWMs length, i.e., short, medium
@@ -190,18 +197,9 @@ class Arduino(object):
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("mode")
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        return self.process_command_string(cmd_str)
 
-    def recIn(self):
+    def rec_in(self):
         """
         NOTES:
           * This method is ONLY used with 4 channels remotes.
@@ -213,18 +211,9 @@ class Arduino(object):
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("rec")
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        return self.process_command_string(cmd_str)
 
-    def fullAIIn(self):
+    def full_ai_in(self):
         """
         NOTES:
           * With a 3 channels remotes, this modeIn can have 3 PWMs length, i.e., short, medium
@@ -239,18 +228,9 @@ class Arduino(object):
            duration : pulse length measurement
         """
         cmd_str = build_cmd_str("fullai")
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        return self.process_command_string(cmd_str)
 
-    def pulseIn(self, pin, val):
+    def pulse_in(self, pin, val):
         """
         Reads a pulse from a pin
 
@@ -264,16 +244,7 @@ class Arduino(object):
         else:
             pin_ = pin
         cmd_str = build_cmd_str("pi", (pin_,))
-        try:
-            self.sr.write(cmd_str)
-            self.sr.flush()
-        except:
-            pass
-        rd = self.sr.readline().replace("\r\n".encode(), "".encode())
-        try:
-            return float(rd)
-        except:
-            return -1
+        self.process_command_string(cmd_str)
 
     def close(self):
         if self.sr.isOpen():
@@ -302,7 +273,7 @@ class Servos(object):
             if rd.isdigit():
                 break
             else:
-                # When the Arduino Mega gets interuppted by the keyboard, it will then
+                # When the Arduino Mega gets interrupted by the keyboard, it will then
                 # keep returning the "version" keyword instead of a number, so reset
                 # the Arduino!
                 self.sr.setDTR(False)

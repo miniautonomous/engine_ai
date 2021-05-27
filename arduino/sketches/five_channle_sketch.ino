@@ -1,14 +1,11 @@
 /*
   Description:
     This is an optimized version of the package (pip install arduino-python3).
-    It was optimized specifically for the miniAV control interface by removing all
+    It was optimized specifically for the python control interface by removing all
     unused functions and implementing external interrupt request to read PWM since the
-    easy way of using the Arduino pulseIn function was giving noise and delay problems,
-    see wiki.
+    easy way of using the Arduino pulseIn function was giving noise and delay problems.
 
-    Author:   Francois Charette, Ph.D.
-    Created:  February 21, 2020
-    Modified: ...
+    Original author of arduino-python3:   Morten Kals
 */
 #include <SoftwareSerial.h>
 #include <Servo.h>
@@ -247,33 +244,6 @@ void SerialParser(void) {
   String data = read_.substring(idx1+1,idx2);
 
   // determine command sent
-  if (cmd == "pi") {
-      pulseInHandler(data);
-  }
-  else if (cmd == "ss") {
-      SS_set(data);
-  }
-  else if (cmd == "sw") {
-      SS_write(data);
-  }
-  else if (cmd == "sr") {
-      SS_read(data);
-  }
-  else if (cmd == "sva") {
-      SV_add(data);
-  }
-  else if (cmd == "svr") {
-      SV_read(data);
-  }
- else if (cmd == "svw") {
-      SV_write(data);
-  }
- else if (cmd == "svwm") {
-      SV_write_ms(data);
-  }
-  else if (cmd == "svd") {
-      SV_remove(data);
-  }
   else if (cmd == "version") {
       Version();
   }
