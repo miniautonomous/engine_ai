@@ -1,7 +1,7 @@
 /*
   Description:
     This is an optimized version of the package (pip install arduino-python3).
-    It was optimized specifically for the python control interface by removing all
+    It was optimized specifically for the Python control interface by removing all
     unused functions and implementing external interrupt request to read PWM since the
     easy way of using the Arduino pulseIn function was giving noise and delay problems.
 
