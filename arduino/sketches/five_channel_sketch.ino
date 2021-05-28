@@ -244,6 +244,33 @@ void SerialParser(void) {
   String data = read_.substring(idx1+1,idx2);
 
   // determine command sent
+  if (cmd == "pi") {
+      pulseInHandler(data);
+  }
+  else if (cmd == "ss") {
+      SS_set(data);
+  }
+  else if (cmd == "sw") {
+      SS_write(data);
+  }
+  else if (cmd == "sr") {
+      SS_read(data);
+  }
+  else if (cmd == "sva") {
+      SV_add(data);
+  }
+  else if (cmd == "svr") {
+      SV_read(data);
+  }
+ else if (cmd == "svw") {
+      SV_write(data);
+  }
+ else if (cmd == "svwm") {
+      SV_write_ms(data);
+  }
+  else if (cmd == "svd") {
+      SV_remove(data);
+  }
   else if (cmd == "version") {
       Version();
   }
