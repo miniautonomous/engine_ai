@@ -206,8 +206,8 @@ class EngineApp(App):
         """
             We are using the five channel options (TQi4ch)
         """
-        mode_pwm = self.arduino_board.modeIn()
-        full_ai_pwm = self.arduino_board.fullAIIn()
+        mode_pwm = self.arduino_board.mode_in()
+        full_ai_pwm = self.arduino_board.full_ai_in()
 
         # Set the vehicle to manual or autonomous
         if mode_pwm < 1500:
@@ -232,7 +232,7 @@ class EngineApp(App):
             data, (manual driving), or you can record to show the vehicle
             driving itself from the perspective of the vehicle.
         """
-        record_pwm = self.arduino_board.recIn()
+        record_pwm = self.arduino_board.rec_in()
         if record_pwm < 1500:
             self.record_on = False
         else:
@@ -295,7 +295,7 @@ class EngineApp(App):
         throttle_output: (int) desired throttle output
         """
         # Steering
-        steering_output = self.arduino_board.steerIn()
+        steering_output = self.arduino_board.steer_in()
         # Clip to range if required
         steering_output = self.data_utils.chop_value(steering_output,
                                                      self.ui.steering_min,
@@ -303,7 +303,7 @@ class EngineApp(App):
         self.arduino_board.Servos.write(STEERING_SERVO, steering_output)
 
         # Throttle
-        throttle_output = self.arduino_board.throttleIn()
+        throttle_output = self.arduino_board.throttle_in()
         throttle_output = self.data_utils.chop_value(throttle_output,
                                                      self.ui.throttle_min,
                                                      self.ui.throttle_max)
@@ -351,7 +351,7 @@ class EngineApp(App):
         # Now determine the throttle
         if self.drive_mode == 'Steering Autonomous':
             # Throttle is manual
-            throttle_output = self.arduino_board.throttleIn()
+            throttle_output = self.arduino_board.throttle_in()
             rescaled_throttle = self.data_utils.chop_value(throttle_output,
                                                            self.ui.throttle_min,
                                                            self.ui.throttle_max)
