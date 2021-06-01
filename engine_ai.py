@@ -367,6 +367,17 @@ class EngineApp(App):
                                                              [0, 100,
                                                               self.ui.throttle_min,
                                                               self.ui.throttle_max])
+            # If you want to set a constant throttle, uncomment this line
+            """
+                Please note:
+                The following is an option to use a constant velocity instead of an inference-based
+                throttle output. The PWM settings on the vehicle are somewhat non-intuitive in that 
+                1500 is neutral, and throttle forward is below 1500, while throttle in reverse are 
+                values greater than 1500. 1465 is a relatively low velocity, but these values are 
+                highly correlated to what type of battery you are using  on the vehicle and how charged
+                it is.
+            """
+            # rescaled_throttle = 1465
             self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
 
             # Update UI
