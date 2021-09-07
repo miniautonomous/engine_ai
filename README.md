@@ -32,13 +32,19 @@ networks), and a variety of other information that might be helpful on your jour
 
 **engine_ai** is the Python-based control framework for the drone. It allows the user to manually drive the drone,
 record data with it and, once said data is uploaded to **trainer_ai** and a network trained, operate the vehicle in an
-autonomous state.
+autonomous state. If you are not familiar with the miniAutonomous framework, we suggest visiting our primary portal page
+before diving into this repo, but a summary slide is provided here to give you an overall view of the ecosystem.
 
-Its functionality revolves around a Kivy UI, shown in Figure 1 below:
+<p align="center">
+<img src=./img/intro_slide.png width="75%"><p></p>
+<p align="center"> Figure 1: miniAutonomous in a slide</p>
+
+This code repo provides the on-vehicle component of the functional loop given in the slide, and a primary components of
+its functionality revolves around a Kivy UI, shown in Figure 2 below:
 
 <p align="center">
 <img src=./img/ui_in_action.png width="75%"><p></p>
-<p align="center"> Figure 1: The <i>engine_ai</i> UI in action!</p>
+<p align="center"> Figure 2: The <i>engine_ai</i> UI in action!</p>
 
 The code base is somewhat hardware agnostic and has been ported to both the NVIDIA Jetson Nano Developer Kit and to an 
 Intel NUC. We will focus on the installation on the Jetson Nano since this is our compute platform of choice. We then
@@ -242,7 +248,7 @@ to log image data and driver input in terms of throttle and steering. Here is a 
 
 <p align="center">
 <img src=./img/hdf5_sample.png width="75%"><p></p>
-<p align="center"> Figure 2: A sample frame form an HDF5 file</p>
+<p align="center"> Figure 3: A sample frame form an HDF5 file</p>
 
 If you want to use the data logger for another application, all the pertinent code is found in the **write_hdf5.py** 
 file in the **utils** directory. 
@@ -262,7 +268,7 @@ Here is a labeled rendition of the UI:
 
 <p align="center">
 <img src=./img/ui_usage_labels.png width="75%"><p></p>
-<p align="center"> Figure 3: UI layout and functions</p>
+<p align="center"> Figure 4: UI layout and functions</p>
 
 There are three buttons that require input from the user via a keyboard: the Power on/off button,
 the Network Model button, and the Log Folder button. The very first step to start the system is to 
@@ -287,7 +293,7 @@ an image of the transmitter we have chosen for *MiniAutonomous*:
 
 <p align="center">
 <img src=./img/transmitter.png width="75%"><p></p>
-<p align="center"> Figure 4: Transmitter description</p>
+<p align="center"> Figure 5: Transmitter description</p>
 
 When you first start **engine_ai**, the default state of the vehicle will be manual driving. As with standard RC cars,
 the throttle trigger and steering wheel will allow you to navigate the drone. Once a log folder has been selected to
