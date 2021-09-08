@@ -44,7 +44,7 @@ its functionality revolves around a Kivy user interface (UI) which is displayed 
 A screen grab of the UI is shown in Figure 2 below:
 
 <p align="center">
-<img src=./img/ui_in_action.png width="75%"><p></p>
+<img src=./img/ui_in_action.png width="50%"><p></p>
 <p align="center"> Figure 2: The <i>engine_ai</i> UI in action!</p>
 
 The code base is somewhat hardware agnostic and has been ported to both the NVIDIA Jetson Nano Developer Kit and to an 
