@@ -30,7 +30,7 @@ networks), and a variety of other information that might be helpful on your jour
    i. [*jetson_clocks*: Boosting inference performance](#jeston_clocks-a-hidden-gem)
 # Introduction
 
-**engine_ai** is the Python-based control framework for the drone. It allows the user to manually drive the drone,
+**engine_ai** is the Python-based control framework for the scaled vehicle. It allows the user to manually drive the car,
 record data with it and, once said data is uploaded to **trainer_ai** and a network trained, operate the vehicle in an
 autonomous state. If you are not familiar with the miniAutonomous framework, we suggest visiting our primary portal page
 before diving into this repo, but a summary slide is provided here to give you an overall view of the ecosystem.
@@ -40,7 +40,8 @@ before diving into this repo, but a summary slide is provided here to give you a
 <p align="center"> Figure 1: miniAutonomous in a slide</p>
 
 This code repo provides the on-vehicle component of the functional loop given in the slide, and a primary components of
-its functionality revolves around a Kivy UI, shown in Figure 2 below:
+its functionality revolves around a Kivy user interface (UI) which is displayed on the car's embedded LCD.
+A screen grab of the UI is shown in Figure 2 below:
 
 <p align="center">
 <img src=./img/ui_in_action.png width="75%"><p></p>
@@ -273,7 +274,7 @@ Here is a labeled rendition of the UI:
 There are three buttons that require input from the user via a keyboard: the Power on/off button,
 the Network Model button, and the Log Folder button. The very first step to start the system is to 
 power it on via the Power button. The default state of the vehicle is in manual drive mode, so you should
-now be able to drive the drone around as if it was a standard RC car. 
+now be able to drive the car around as if it was a standard RC car. 
 
 PLEASE NOTE: We highly recommend that when you start the car, have it on a stand with the wheels not making
 contact with any surface. Always test responsiveness of the vehicle while the car is on the stand first to ensure you
@@ -296,7 +297,7 @@ an image of the transmitter we have chosen for *MiniAutonomous*:
 <p align="center"> Figure 5: Transmitter description</p>
 
 When you first start **engine_ai**, the default state of the vehicle will be manual driving. As with standard RC cars,
-the throttle trigger and steering wheel will allow you to navigate the drone. Once a log folder has been selected to
+the throttle trigger and steering wheel will allow you to navigate it manually. Once a log folder has been selected to
 store your data, the red rocker switch embedded in the handle of the transmitter will allow you to start and stop
 recording: flip it down to start logging and up to stop. A green light will light up the recording status indicator of 
 the UI to show that the vehicle is logging data. Each time you stop/start the logging state, a new **HDF5** will be 
