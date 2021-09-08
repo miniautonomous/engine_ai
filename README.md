@@ -3,7 +3,7 @@
 Welcome to the code base for **engine_ai**!
 
 This is the on-vehicle software that controls the car. In this
-README, we will review how to install it on your compute platform, the overall code structure and finally how to use it
+README, we will review how to install it on your compute platform, its overall code layout and finally how to use it
 to control your vehicle. Please be aware that additional supporting content is available in our main portal page: 
 
 https://miniautonomous.github.io/portal/
@@ -54,7 +54,7 @@ review the overall code structure followed by usage and functionality once deplo
 # Installation
 
 Installation on a Jetson Nano is relatively straightforward if one uses the SD card image provided. This might be the 
-best option for many users since that would bypass having to compile for the Nano the RealSense library and 
+best option for many users since that would bypass having to compile the RealSense library for the Nano  and 
 eliminate having to deal with certain issues regarding Kivy and its backend. If the user would like to compile things
 from scratch off a fresh NVIDIA image, then we have notes of the things we needed to do to create an initial working 
 compute platform.
