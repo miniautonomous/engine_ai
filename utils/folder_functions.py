@@ -296,7 +296,6 @@ class UserPath(object):
             with open(dictionary_path) as tmpFile:
                 return json.load(tmpFile)
 
-    # @TODO: Discuss this with Francois
     @staticmethod
     def file_paths_list_2(folder_list: list, file_type: str= '*.*') -> list:
         """
