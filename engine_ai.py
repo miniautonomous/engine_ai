@@ -16,12 +16,6 @@ from utils.write_hdf5 import StreamToHDF5
 from utils.data_functions import DataUtils
 from arduino.python_arduino import Arduino
 
-# Are we using the RealSense API? If not, OpenCV webcam API
-try:
-    import pyrealsense2 as rs
-except ImportError:
-    rs = None
-
 # Servo Pin Numbers
 STEERING_SERVO = 9
 THROTTLE_SERVO = 10
@@ -78,17 +72,16 @@ class EngineApp(App):
         self.nn_image_height = 0
         self.sequence_length = 0
 
-        # Use webcam or realsense camera
+        """
+            Current options are a webcam or a Raspberry Pi CM 2 module
+        """
         self.use_webcam = False
 
-        # RealSense camera pipeline
-        if rs is not None:
-            self.rs_pipeline = rs.pipeline()
-            self.rs_config = rs.config()
-        else:
-            self.rs_pipeline = None
-            self.rs_config = None
-        self.rs_is_on = False
+        # Options required for Rsp PI CM 2 module
+        self.sensor_id = 0
+        self.flip_method = 0
+        self.pi_cam_feed = None
+        self.pi_cam_on = False
 
         # Webcam option
         self.webcam_feed = None
@@ -397,16 +390,19 @@ class EngineApp(App):
             Clock.unschedule(self.drive_loop)
             self.root.powerCtrls.power.text = 'Power OFF'
 
-            # Camera
+            # Camera shut off
             if self.use_webcam:
-                self.webcam_feed.release()
-                self.webcam_on = False
+                try:
+                    self.webcam_feed.release()
+                    self.webcam_on = False
+                except ValueError:
+                    pass
             else:
-                if self.rs_is_on:
-                    try:
-                        self.rs_pipeline.stop()
-                    except ValueError:
-                        pass
+                try:
+                    self.pi_cam_feed.release()
+                    self.pi_cam_on = False
+                except ValueError:
+                    pass
 
             # Arduino
             if self.board_available:
@@ -438,41 +434,27 @@ class EngineApp(App):
                 else:
                     self.webcam_on = False
             else:
-                self.rs_config.enable_stream(stream_type=rs.stream.color,
-                                             stream_index=0,
-                                             width=self.ui.image_width,
-                                             height=self.ui.image_height,
-                                             format=rs.format.bgr8,
-                                             framerate=int(self.ui.prescribed_rs_rate))
-                # self.rs_pipeline.start(self.rs_config)
-                profile = self.rs_pipeline.start(self.rs_config)
-
-                # Set auto exposure feature
+                # We are using the Raspberry Pi camera
                 """
-                    Please note: 
-                    On the Intel RealSense, we can control the auto exposure feature of the camera. 
-                    This is a very tricky feature to deal with since turning off the auto exposure will boost
-                    the frame rate of the camera, which in turn may boost the main drive loop rate, but 
-                    depending on lighting, this may lead to inconsistent image quality and issues with inference.
-                    The important things is that if you set the 'enable_auto_exposure' to False and then comment 
-                    this line out, the camera will remember that this was set off the next time you use it, so it
-                    is important to set it to True to re-enable. 
+                    The Raspberry Pi camera takes a feed from gstream, which is a command line
+                    utility. We follow the Jetson Hacks way of feeding a command
+                    line to the CV2 capture method. Let's do so here in the most stylistically 
+                    fashionable way... it's still not pretty. ;D
                 """
-                # Grab the sensor of the RGB camera
-                # sensor = profile.get_device().query_sensors()[1]
-                # Turn it on
-                # sensor.set_option(rs.option.enable_auto_exposure, True)
-                # Turn it off
-                # sensor.set_option(rs.option.enable_auto_exposure, False)
-
-                # Get initial frame and confirm result
-                frames = self.rs_pipeline.wait_for_frames()
-                color_frame = frames.get_color_frame()
-                if not color_frame:
-                    self.rs_is_on = False
+                gstream_command_line = f"nvarguscamerasrc sensor-id={self.sensor_id} ! video/x-raw(memory:NVMM), " \
+                                       f"width=(int){self.ui.image_width}, height=(int){self.ui.image_height}, " \
+                                       f"framerate=(fraction){self.ui.prescribed_rs_rate}/1 !" \
+                                       f"nvvidconv flip-method={self.flip_method} !" \
+                                       f"video/x-raw, width=(int){self.ui.image_width}," \
+                                       f" height=(int){self.ui.image_height}," \
+                                       f"format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
+                self.pi_cam_feed = cv2.VideoCapture(gstream_command_line, cv2.CAP_GSTREAMER)
+                self.get_frame = self.get_frame_from_pi
+                # Get the initial frame from the pi camera and confirm result
+                if self.pi_cam_feed.isOpened():
+                    self.pi_cam_on, _ = self.pi_cam_feed.read()
                 else:
-                    self.rs_is_on = True
-                self.get_frame = self.get_frame_from_rs
+                    self.pi_cam_on = False
 
             # Start the Arduino
             if not self.board_available:
@@ -485,7 +467,7 @@ class EngineApp(App):
                 (what user gets) frequency.
             """
             # Schedule and start the drive loop
-            if self.rs_is_on or self.webcam_on:
+            if self.pi_cam_on or self.webcam_on:
                 if self.board_available:
                     Clock.schedule_interval(self.drive_loop, 1 / self.drive_loop_rate)
                     self.root.powerCtrls.power.text = '[color=00ff00]Power ON[/color]'
@@ -661,15 +643,9 @@ class EngineApp(App):
             return None
         else:
             # Take the image and make it visible in the UI and accessible to all methods
-            self.ui.primary_image = image
+            return self.process_image(image)
 
-            # Process from openCV to np image rendering format
-            image = np.flipud(image)
-            # Switch from BGR to RGB
-            image = image[:, :, [2, 1, 0]]
-            return image
-
-    def get_frame_from_rs(self):
+    def get_frame_from_pi(self):
         """
             Get the image from the RealSense camera
 
@@ -677,19 +653,34 @@ class EngineApp(App):
         ---
         image: (np.ndarray) numpy array from the RealSense
         """
-        frames = self.rs_pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        if color_frame is None:
-            self.rs_is_on = False
+        self.pi_cam_on, image = self.pi_cam_feed.read()
+        if image is None:
+            self.pi_cam_on = False
             return None
         else:
             # Take the image and make it visible in the UI and accessible to all methods
-            self.ui.primary_image = np.asanyarray(color_frame.get_data())
+            return self.process_image(image)
 
-            # Process it for display
-            rs_image = np.flipud(self.ui.primary_image)
-            rs_image = rs_image[:, :, [2, 1, 0]]
-            return rs_image
+    def process_image(self, image: np.ndarray) -> np.ndarray:
+        """
+            Take the image and flip it and switch from BGR to RGB
+
+                Parameters
+        ----------
+        image: (np.ndarray) raw image taken from camera sensor
+
+        Returns
+        -------
+        image: (np.ndarray) process image ready for UI rendition
+        """
+        # Take the image and make it visible in the UI and accessible to all methods
+        self.ui.primary_image = image
+
+        # Process from openCV to np image rendering format
+        image = np.flipud(image)
+        # Switch from BGR to RGB
+        image = image[:, :, [2, 1, 0]]
+        return image
 
     def run_camera(self):
         """
@@ -775,18 +766,20 @@ class EngineAppGUI(GridLayout):
 
         # Set specific resolutions for webcam vs RealSense camera
         if self.app.use_webcam:
-            self.image_width = 432
-            self.image_height = 240
+            self.image_width = 1280
+            self.image_height = 720
+            # Set the desired frame rate at 30
+            """
+                Please note:
+                This is the prescribed (i.e. desired) frame rate, so one is not
+                guaranteed to actually get 30 frames for the sensor. 
+            """
+            self.prescribed_rs_rate = 30
+
         else:
-            self.image_width = 320
-            self.image_height = 240
-        # Set the desired frame rate at 60
-        """
-            Please note:
-            This is the prescribed (i.e. desired) frame rate, so one is not
-            guaranteed to actually get 60 frames for the sensor. 
-        """
-        self.prescribed_rs_rate = 60
+            self.image_width = 120
+            self.image_height = 90
+            self.prescribed_rs_rate = 60
 
         # Steering PWM settings, (done here to display to the user)
         self.steering_neutral = 1500
@@ -832,7 +825,8 @@ class EngineAppGUI(GridLayout):
         # Create the original texture to display the image when the software is started.
         self.image_texture = Texture.create(size=(self.image_width * self.image_width_factor,
                                                   self.image_height),
-                                            colorfmt='rgb', bufferfmt='ubyte')
+                                            colorfmt='rgb',
+                                            bufferfmt='ubyte')
         self.image_number_pixels = self.image_width * self.image_height * self.app.color_depth
 
     def ui_close_window(self, _):
