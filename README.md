@@ -11,6 +11,19 @@ https://miniautonomous.github.io/portal/
 This is where you will find more resources regarding scaled vehicle assembly, **trainer_ai**, (used for training 
 networks), and a variety of other information that might be helpful on your journey.
 
+# Major Update
+
+We have just completed a major update to our stack that includes:
+
+* Vehicle stack ported to Jetpack 4.6
+* Replaced the Intel RealSense D435i with the Raspberry Pi CM 2 camera as the primary vision sensor
+* Created a port of **trainer_ai** for Pytorch!
+
+Please note that we split the **trainer_ai** code base into a Keras repository and a PyTorch repository, (the latter of 
+which will be published shortly), but that it is our intent to keep both versions fully compatible with vehicle stack. 
+As we publish this update, please note that we will be updating this README, the **trainer_ai** README's, (since soon 
+there will be two), and of course our main portal site. 
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
