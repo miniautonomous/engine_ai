@@ -442,8 +442,8 @@ class EngineApp(App):
                     fashionable way... it's still not pretty. ;D
                 """
                 gstream_command_line = f"nvarguscamerasrc sensor-id={self.sensor_id} ! video/x-raw(memory:NVMM), " \
-                                       f"width=(int){self.ui.image_width}, height=(int){self.ui.image_height}, " \
-                                       f"framerate=(fraction){self.ui.prescribed_rs_rate}/1 !" \
+                                       f"width=1280, height=720, " \
+                                       f"framerate=29/1 !" \
                                        f"nvvidconv flip-method={self.flip_method} !" \
                                        f"video/x-raw, width=(int){self.ui.image_width}," \
                                        f" height=(int){self.ui.image_height}," \
