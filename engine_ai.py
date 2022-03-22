@@ -356,10 +356,10 @@ class EngineApp(App):
             self.root.powerCtrls.ai_full.bgnColor = [0.7, 0.7, 0.7, 1]
         else:
             # Full Autonomous!! Throttle is AI determined!
-            rescaled_throttle = self.data_utils.map_function(drive_inference[1],
-                                                             [0, 100,
-                                                              self.ui.throttle_min,
-                                                              self.ui.throttle_max])
+            # rescaled_throttle = self.data_utils.map_function(drive_inference[1],
+            #                                                  [0, 100,
+            #                                                   self.ui.throttle_min,
+            #                                                   self.ui.throttle_max])
             # If you want to set a constant throttle, uncomment this line
             """
                 Please note:
@@ -370,7 +370,7 @@ class EngineApp(App):
                 highly correlated to what type of battery you are using  on the vehicle and how charged
                 it is.
             """
-            # rescaled_throttle = 1465
+            rescaled_throttle = 1465
             self.arduino_board.Servos.write(THROTTLE_SERVO, rescaled_throttle)
 
             # Update UI
