@@ -360,7 +360,7 @@ class EngineApp(App):
             #                                                  [0, 100,
             #                                                   self.ui.throttle_min,
             #                                                   self.ui.throttle_max])
-            # If you want to set a constant throttle, uncomment this line
+            # If you want to set a constant throttle, uncomment these lines and comment out the one below
             """
                 Please note:
                 The following is an option to use a constant velocity instead of an inference-based
