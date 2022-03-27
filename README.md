@@ -96,7 +96,7 @@ https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-devkit#write
 Once you flash your device with the given JetPack image, download the image we provide and flash the Nano 
 as you did originally with the JetPack image. Out SD card image is provided here:
 
-[MiniAutonomous SD Card Image: This is the flashed version](This is the flashed version.)
+[MiniAutonomous SD Card Image](https://drive.google.com/file/d/1-zJuBDatuvL7mKtsW1j9O14Wi9bhmjQW/view?usp=sharing)
 
 Disclaimer: We have flashed a number of different Jetson Nanos, (Developer Kit & 2 GB versions), with various images and 
 never had an issue, but the Jetson platform has its quirks. If the above doesn't work, go to option 2.
